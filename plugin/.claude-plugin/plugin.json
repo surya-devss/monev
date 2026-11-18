@@ -1,6 +1,6 @@
 {
   "name": "monev",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Susun, validasi, dan kirim laporan harian Monev MagangHub (kehadiran + laporan) dengan review user sebelum kirim. Memakai CLI `monev`, sumber read-only (MCP kantor, work records, tanya-jawab), dan extension monev untuk mengirim.",
   "author": {
     "name": "monev contributors"
