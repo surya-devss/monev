@@ -169,8 +169,9 @@ Sesi login Monev hanya tersimpan di profil Chrome. Jangan membagikan folder prof
 
 | Platform | Status |
 |---|---|
-| Linux | CLI, extension, dan bot sudah diuji. Kiriman nyata lewat extension: belum diuji |
+| Linux | CLI, extension (termasuk kiriman laporan hadir), dan bot sudah dipakai harian |
 | macOS | belum diuji (Chrome di `/Applications/Google Chrome.app`; izinkan Chrome di Location Services) |
 | Windows | belum diuji; `monev extension install` belum didukung (butuh registry) |
-| Claude Code | `/monev`, `/monev latihan`, `/monev:status` |
+| Claude Code | `/monev`, `/monev setup`, `/monev nilai`, `/monev latihan`, `/monev:status` |
 | Hermes | terpasang dan dikenali; `/monev` di sesi Hermes belum diuji |
+| GitLab (jalur B) | kode dan tes tersedia; belum diuji dengan akun nyata |

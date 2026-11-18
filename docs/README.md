@@ -37,7 +37,7 @@ Untuk yang ingin mengubah kode atau memahami alasan di balik rancangan.
 |---|---|---|
 | [`arsitektur.md`](teknis/arsitektur.md) | komponen, alur data, dua Chrome dua sesi, bot, struktur kode | perilaku tool atau struktur kode berubah |
 | [`situs-monev.md`](teknis/situs-monev.md) | fakta aplikasi Monev: aturan program, login/sesi, API, form (dengan sumber tiap fakta) | ada fakta Monev baru yang terverifikasi |
-| [`format-pesan-telegram.md`](teknis/format-pesan-telegram.md) | aturan penulisan dan contoh setiap pesan bot | teks pesan di `monev/bot/pesan.py` berubah |
+| [`format-pesan-telegram.md`](teknis/format-pesan-telegram.md) | aturan penulisan dan contoh setiap pesan bot | teks di `monev/teks/bawaan.toml` atau susunan di `monev/bot/pesan.py` berubah |
 | [`kontrak-sumber.md`](teknis/kontrak-sumber.md) | kontrak sumber bahan: MCP kantor, format folder work records, aturan read-only | format work records yang dibaca atau cara memilih tool MCP berubah |
 
 ## Di luar `docs/`
@@ -48,7 +48,7 @@ Untuk yang ingin mengubah kode atau memahami alasan di balik rancangan.
 | [`../config.example.toml`](../config.example.toml), [`../.env.example`](../.env.example) | contoh config (tanpa rahasia) dan kunci bot |
 | [`../scripts/cek-bocor.sh`](../scripts/cek-bocor.sh) | cek kata terlarang dan rahasia sebelum commit (pemelihara, opsional) |
 | [`../CHANGELOG.md`](../CHANGELOG.md) | perubahan yang terasa oleh pemakai |
-| [`../plugin/skills/monev/`](../plugin/skills/monev/) | instruksi untuk agent (`SKILL.md`, cara mengambil sumber, gaya tulisan, prosedur kirim) |
+| [`../plugin/skills/monev/`](../plugin/skills/monev/) | instruksi untuk agent (`SKILL.md`, cara mengambil sumber, setup terpandu, gaya tulisan) |
 | [`../monev/laporan/aturan.toml`](../monev/laporan/aturan.toml) | aturan isi laporan yang dipakai `monev validate` |
 
 ## Aturan pemeliharaan
@@ -56,7 +56,9 @@ Untuk yang ingin mengubah kode atau memahami alasan di balik rancangan.
 - Perubahan perilaku skill → ubah `plugin/skills/monev/` **dan** `teknis/arsitektur.md` di commit yang sama.
 - Perubahan yang terasa oleh pemakai → tambah baris di `CHANGELOG.md` bagian `[Unreleased]` di commit yang sama.
 - Di `situs-monev.md`, setiap fakta diberi sumber: `uji`, `bundle`, `panduan`, atau `belum diketahui`.
-- Teks pesan bot diubah di kode dulu, lalu contoh di `format-pesan-telegram.md` diperbarui.
+- Teks pesan bot diubah di `monev/teks/bawaan.toml` (susunannya di `monev/bot/pesan.py`), lalu contoh di
+  `format-pesan-telegram.md` diperbarui.
+- `tests/test_dokumen.py` gagal bila perintah CLI, paket, file tes, atau tautan di dokumen tidak cocok dengan repo.
 - Default config di `monev/config.py` (`render_config`) berubah → buat ulang `config.example.toml` (tes
   `test_config` gagal bila keduanya berbeda).
 - Repo tidak menyebut alat/layanan internal kantor mana pun, path pribadi, atau rahasia; yang spesifik orang/kantor

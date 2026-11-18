@@ -107,7 +107,7 @@ Riwayat perubahan: [CHANGELOG.md](CHANGELOG.md).
 
 ```
 monev/
-├── monev/               kode Python: cli/ (perintah), portal/, laporan/, kirim/, bot/, agen/
+├── monev/               kode Python: cli/ (perintah), portal/, laporan/, kirim/, bot/, agen/, sumber/, teks/
 │                        (lihat docs/teknis/arsitektur.md#struktur-kode)
 ├── extension/           extension Chrome
 ├── plugin/              skill /monev untuk Claude Code (juga dipasang ke Hermes)
