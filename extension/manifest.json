@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Monev Kirim",
+  "version": "0.2.0",
+  "description": "Isi dan kirim laporan harian Monev MagangHub dari draft yang sudah disetujui lewat CLI monev. Tanpa menyimpan token atau password.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAolAmX1T+/855ArOuo5aT1qRxhWiUK/gD2IdX57oG0pwCc0wdDkQQE+qCQUuwgiE4gId4QRaIe9lDwJ3jT0AlqIZl9kkZhDpy/4q/fqGcEFF9ZOmuk0ardGvdjUwUSRJ+vUT4nFSFPfJDzgiPtLByksF7dEf7g4PrcUHHxJsggfVbbsM8ZmuTbeMG3PV2J4XOpBDeR72wfbnfVzPsN2RjlqFSfQx/SeDxxc4/d3j384N+tInB2cDXgwvfAbCdZsF6VxEs3XqrIrvqXebfkKhXCeCOiUJSiBZqVYvtLEZWEFuPaf/a9Ru37KUQeB3dGWKV2o7K5Or1PkrhjLGDmOvEGQIDAQAB",
+  "permissions": [
+    "nativeMessaging",
+    "alarms",
+    "scripting",
+    "storage",
+    "tabs",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://monev.maganghub.kemnaker.go.id/*"
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Monev Kirim",
+    "default_icon": {
+      "16": "ikon/ikon-16.png",
+      "32": "ikon/ikon-32.png"
+    }
+  },
+  "icons": {
+    "16": "ikon/ikon-16.png",
+    "32": "ikon/ikon-32.png",
+    "48": "ikon/ikon-48.png",
+    "128": "ikon/ikon-128.png"
+  }
+}

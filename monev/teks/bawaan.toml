@@ -1,0 +1,153 @@
+# Teks notifikasi bawaan monev (extension Chrome). Satu-satunya sumber teks; extension tidak menyimpan salinan.
+# Ganti sebagian lewat config.toml dengan kunci yang sama di bawah [pesan], mis.:
+#   [pesan.ingat.pertama]
+#   judul = "Jangan lupa laporan hari ini."
+# Placeholder yang dikenal: lihat PLACEHOLDER di monev/teks/__init__.py ({nama} {hari} {tanggal} {batas} {sisa} ...).
+# Gaya: kalimat biasa, tanpa titik koma, tanpa tanda pisah panjang, tanpa titik dua di tengah kalimat.
+
+[pagi]
+judul = "Selamat pagi, {nama}. Selamat bekerja."
+belum = "Laporan ditunggu sampai {batas} WIB."
+sudah = "Laporan hari ini sudah terkirim."
+revisi = "Ada revisi dari mentor untuk {tanggal}."
+
+[fokus]
+judul = "Saatnya mulai bekerja. Fokus hari ini:"
+poin = [
+  "Kerjakan task yang sudah direncanakan, satu per satu sampai selesai.",
+  "Catat hasil dan kendala sambil jalan, supaya laporan tinggal disusun.",
+]
+senin = "Awal minggu, tentukan dulu prioritas minggu ini."
+jumat = "Hari kerja terakhir minggu ini, tuntaskan yang tersisa."
+
+[ingat.pertama]
+judul = "Laporan hari ini belum diisi."
+isi = "{hari}. Batas kirim pukul {batas} WIB."
+
+[ingat.kedua]
+judul = "Laporan hari ini masih belum terkirim."
+isi = "Jam kerja hampir selesai, sebaiknya dikirim sebelum pulang."
+
+[ingat.terakhir]
+judul = "Laporan belum terkirim. Sisa sekitar {sisa} jam."
+isi = "Kalau sampai {batas} belum terkirim, hari ini dihitung absen."
+
+[login]
+judul = "Sesi Monev di Chrome ini habis."
+isi = "Login ulang di tab Monev supaya pengingat dan pengiriman tetap jalan."
+
+[hasil.terkirim]
+judul = "Laporan {tanggal} sudah terkirim."
+isi = "Sekarang menunggu persetujuan mentor."
+
+[hasil.uji]
+judul = "Form {tanggal} sudah terisi (mode uji)."
+isi = "Tidak dicentang dan tidak dikirim. Cek isinya di tab Monev."
+
+[hasil.gagal]
+judul = "Laporan {tanggal} belum terkirim."
+isi = "{alasan}"
+
+[hasil.tidak_pasti]
+judul = "Belum pasti laporan {tanggal} masuk."
+isi = "Jangan kirim ulang. Cek Riwayat di Monev atau jalankan monev status."
+
+# ---------------------------------------------------------------- bot Telegram
+# Bot juga memakai [fokus] dan [ingat.*] di atas (sama dengan extension). `teks` di antara backtick tampil sebagai kode.
+
+[bot.kartu]
+sapaan = "Selamat pagi, {nama}."
+libur_judul = "Selamat pagi, {nama}. Hari ini libur."
+libur_isi = "{hari}. Tidak wajib mengisi laporan."
+label_laporan = "Laporan"
+label_revisi = "Revisi"
+label_batas = "Batas"
+laporan_belum = "Belum diisi"
+laporan_sudah = "✓ Terkirim, {mentor}"
+revisi_tidak = "Tidak ada"
+fokus = "Fokus hari ini"
+
+[bot.ingat]
+tindakan = "Isi dari laptop dengan `/monev`."
+selesai = "Selesai, laporan sudah terkirim."
+tunda = "Diingatkan lagi pukul {jam}."
+cek_belum = "Belum terlihat terkirim di Monev. Coba cek lagi beberapa menit lagi."
+cek_sudah = "Laporan sudah terkirim."
+
+[bot.terkirim]
+judul = "Laporan {tanggal} sudah terkirim."
+isi = "Tercatat {rincian}. Sekarang {mentor}."
+
+[bot.revisi]
+judul = "Mentor minta revisi laporan {tanggal}."
+tanpa_catatan = "Tanpa catatan."
+tindakan = "Perbaiki dari laptop dengan `/monev revisi`."
+
+[bot.ditolak]
+judul = "Kehadiran {tanggal} ditolak mentor."
+isi = "Hari itu dihitung absen. Total absen sekarang {absen} dari batas peringatan {batas_absen}."
+tindakan = "Kalau menurutmu keliru, tanyakan ke mentor."
+
+[bot.sesi]
+judul = "Sesi Monev di server habis {kapan} ({tanggal})."
+isi = "Setelah itu pengingat dan rekap berhenti."
+tindakan = "Login ulang di laptop lalu salin sesinya ke server, caranya ada di `docs/panduan/bot-telegram.md`."
+
+[bot.gangguan]
+judul = "Bot belum bisa membaca Monev."
+isi = "Penyebabnya {alasan}. Pengingat ditunda dulu."
+percobaan = "Dicoba {jam}. Berikutnya {berikut}."
+pulih = "Pulih pukul {jam}, pengingat jalan lagi."
+cara = "Login ulang di laptop dengan perintah monev, lalu salin sesinya ke server. Panduan ada di docs/panduan/bot-telegram.md."
+
+[bot.status]
+belum = "Laporan hari ini belum diisi."
+sudah = "Laporan hari ini sudah terkirim, {mentor}."
+libur = "Hari ini libur, tidak wajib mengisi laporan."
+tidak_aktif = "Magang tidak aktif."
+tindakan = "Isi dari laptop dengan `/monev`."
+label_tanggal = "Tanggal"
+label_sesi = "Sesi Monev"
+hari_kerja = "hari kerja"
+hari_libur = "libur"
+sesi_aktif = "aktif sampai {tanggal}"
+sesi_tidak = "tanggal habisnya tidak terbaca"
+
+[bot.menu]
+judul = "Mau lihat apa, {nama}?"
+isi = "Status dan rekap dibaca dari Monev, lalu dipakai ulang selama {menit} menit."
+membaca = "Membaca Monev…"
+memuat = "⏳ Membaca Monev, biasanya 5 sampai 15 detik."
+diperbarui = "Data Monev pukul {jam}."
+
+[bot.jadwal]
+judul = "Jadwal di hari kerja"
+kartu = "Kartu hari ini"
+pengingat = "Pengingat bila belum diisi"
+terakhir = "Pengingat terakhir"
+rekap = "Rekap minggu (Jumat)"
+isi = "Ubah di `config.toml` server bagian `[bot]`, lalu restart bot."
+
+[bot.bantuan]
+judul = "monev bot mengingatkan dan merekap laporan Monev kamu."
+isi = "Pengingat otomatis jam {jam} WIB di hari kerja, hanya bila laporan belum diisi."
+catatan = "Bot hanya membaca Monev. Laporan tetap ditulis dan dikirim dari laptop."
+
+[bot.ping]
+isi = "Bot aktif sejak {tanggal} pukul {jam} WIB."
+
+[bot.tombol]
+status = "Status"
+rekap = "Rekap"
+menu = "Menu"
+status_hari_ini = "Status hari ini"
+rekap_minggu = "Rekap minggu"
+rekap_bulan = "Rekap bulan"
+jadwal = "Jadwal pengingat"
+bantuan = "Bantuan"
+kembali = "‹ Menu"
+tunda = "Ingatkan {lama} lagi"
+cek = "Sudah kirim, cek"
+coba = "Coba sekarang"
+cara = "Cara memperbarui"
+segarkan = "↻ Segarkan"

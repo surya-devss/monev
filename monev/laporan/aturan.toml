@@ -1,0 +1,77 @@
+# Aturan isi laporan Monev. Dipakai bersama oleh CLI, skill Claude, dan (nanti) extension.
+# Sumber: form Monev (bundle JS + Panduan Peserta v2026.10.03) dan rencana §5.
+
+[field]
+min = 100          # minimal karakter per field (dihitung seperti String.length JavaScript / UTF-16)
+max = 5000
+
+[field.nama]       # nama tampilan di form Monev
+activity_log   = "Uraian aktivitas"
+lesson_learned = "Pembelajaran yang diperoleh"
+obstacles      = "Kendala yang dialami"
+leave_reason   = "Alasan tidak hadir"
+
+[status]
+izinkan = ["PRESENT", "ON_LEAVE"]   # ABSENT (tanpa keterangan) tidak pernah dibuat otomatis
+
+# Pola yang TIDAK boleh ada di laporan (error, memblokir).
+[[terlarang]]
+nama  = "alamat IP"
+regex = '\b(?:\d{1,3}\.){3}\d{1,3}\b'
+
+[[terlarang]]
+nama  = "URL"
+regex = '\bhttps?://\S+'
+
+[[terlarang]]
+nama  = "nomor tiket"
+regex = '(?<![\w&])#\d{2,}\b'
+
+[[terlarang]]
+nama  = "nomor MR/PR"
+regex = '(?<![\w!])!\d{1,}\b'
+
+[[terlarang]]
+nama  = "hash commit"
+regex = '\b(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b'
+
+[[terlarang]]
+nama  = "path berkas"
+regex = '(?:~/|(?<![\w.])/(?:home|etc|var|opt|usr|srv|root|tmp)/)\S*'
+
+[[terlarang]]
+nama  = "email"
+regex = '\b[\w.+-]+@[\w-]+\.[\w.-]+\b'
+
+[[terlarang]]
+nama  = "token/secret"
+regex = '\b(?:xox[abpr]-[\w-]+|gh[pousr]_\w{20,}|glpat-[\w-]{20,}|AKIA[0-9A-Z]{16}|sk-[\w-]{20,})'
+
+[[terlarang]]
+nama  = "nomor CVE"
+regex = '\bCVE-\d{4}-\d{4,}\b'
+
+# Pola yang sebaiknya dihindari (peringatan, tidak memblokir).
+[[peringatan]]
+nama  = "markdown"
+regex = '\*\*|__|`|^#{1,6}\s'
+
+[[peringatan]]
+nama  = "emoji"
+regex = '[\U0001F300-\U0001FAFF☀-➿]'
+
+[[peringatan]]
+nama  = "tanda baca khas AI (titik koma / tanda pisah panjang)"
+regex = '[;—]'
+
+[[peringatan]]
+nama  = "titik dua di tengah kalimat"
+regex = '(?<=[a-z\)]): (?=[a-z])'
+
+[[peringatan]]
+nama  = "jargon internal"
+regex = '\b(?:L[0-7]|T\d{1,2}|AC-?R?\d+|canary|fase [A-Z]\b)'
+
+[kemiripan]
+ambang = 0.85      # peringatan bila field ≥85% mirip laporan terdahulu di arsip
+riwayat = 10       # jumlah laporan terakhir yang dibandingkan

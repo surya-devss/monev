@@ -1,0 +1,11 @@
+.env
+config.toml
+.venv
+.git
+.hermes
+**/__pycache__
+extension
+plugin
+docs
+tests
+deploy

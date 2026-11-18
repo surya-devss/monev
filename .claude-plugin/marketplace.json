@@ -1,0 +1,17 @@
+{
+  "name": "monev-local",
+  "owner": {
+    "name": "monev contributors"
+  },
+  "metadata": {
+    "description": "Asisten laporan harian Monev MagangHub (plugin lokal dari repo monev)."
+  },
+  "plugins": [
+    {
+      "name": "monev",
+      "source": "./plugin",
+      "description": "Susun, validasi, dan kirim laporan harian Monev MagangHub dengan review sebelum kirim.",
+      "version": "0.1.0"
+    }
+  ]
+}

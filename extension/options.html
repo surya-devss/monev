@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Pengaturan Monev Kirim</title>
+<link rel="stylesheet" href="tema.css">
+<style>
+  body { background: var(--latar); font-size: 14px; }
+  main { max-width: 760px; margin: 0 auto; padding: 28px 16px; display: flex; flex-direction: column; gap: 18px; }
+  .kepala { display: flex; align-items: center; gap: 12px; }
+  .kepala img { width: 40px; height: 40px; border-radius: 8px; }
+  h1 { font-size: 20px; margin: 0; }
+  .kotak { background: var(--kartu); border: 1px solid var(--garis); border-radius: 8px; }
+  .kotak-kepala { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--garis); }
+  .jadwal { display: grid; grid-template-columns: 200px minmax(0, 1fr) auto; align-items: center; gap: 14px 16px; padding: 16px 18px; }
+  .jadwal .nama { font-weight: 600; }
+  .isian { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  input[type=time], select { font: inherit; height: 32px; box-sizing: border-box; border: 1px solid var(--garis); border-radius: 6px;
+    padding: 0 8px; background: var(--lembut); color: var(--teks); }
+  input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--aksen); }
+  label.saklar { display: flex; gap: 6px; align-items: center; cursor: pointer; justify-self: end; }
+  .kecil { font-size: 13px; }
+  .bawah { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .bawah .utama { margin-left: auto; }
+  .pesan { padding: 14px 18px; display: flex; flex-direction: column; gap: 6px; }
+  @media (max-width: 600px) {
+    .jadwal { grid-template-columns: minmax(0, 1fr) auto; }
+    .jadwal .nama { grid-column: 1 / -1; margin-bottom: -8px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="kepala">
+    <img src="ikon/ikon-48.png" alt="">
+    <div>
+      <h1>Pengaturan Monev Kirim</h1>
+      <div class="redup kecil">Tersimpan di Chrome ini saja. Jadwal bot Telegram diatur terpisah di server.</div>
+    </div>
+  </div>
+
+  <section class="kotak">
+    <div class="kotak-kepala">
+      <div>
+        <div style="font-weight:600">Notifikasi di Chrome</div>
+        <div class="redup kecil">Hanya hari kerja, saat Chrome terbuka. Jadwal yang terlewat lebih dari 30 menit dilewati.</div>
+      </div>
+      <label class="saklar"><input type="checkbox" id="aktif"> Aktif</label>
+    </div>
+    <div class="jadwal">
+      <div class="nama">Sapaan pagi</div>
+      <div class="isian"><input type="time" id="jamPagi" aria-label="Jam sapaan pagi"><span class="redup kecil">nama, posisi, batas kirim</span></div>
+      <label class="saklar"><input type="checkbox" id="nyalaPagi"> Nyala</label>
+
+      <div class="nama">Fokus hari ini</div>
+      <div class="isian"><input type="time" id="jamFokus" aria-label="Jam fokus hari ini"><span class="redup kecil">fokus kerja dan satu nilai perusahaan</span></div>
+      <label class="saklar"><input type="checkbox" id="nyalaFokus"> Nyala</label>
+
+      <div class="nama">Pengingat belum diisi</div>
+      <div class="isian">
+        <input type="time" id="ingat0" aria-label="Pengingat pertama">
+        <input type="time" id="ingat1" aria-label="Pengingat kedua">
+        <input type="time" id="ingat2" aria-label="Pengingat terakhir">
+      </div>
+      <label class="saklar"><input type="checkbox" id="nyalaIngat"> Nyala</label>
+
+      <div class="nama">Tunda pengingat</div>
+      <div class="isian">
+        <select id="tunda" aria-label="Lama tunda"><option value="15">15 menit</option><option value="30">30 menit</option><option value="60">1 jam</option></select>
+        <span class="redup kecil">untuk tombol "Ingatkan lagi" di notifikasi</span>
+      </div>
+      <div></div>
+    </div>
+  </section>
+
+  <section class="kotak pesan">
+    <div style="font-weight:600">Isi pesan</div>
+    <div class="redup kecil" style="line-height:1.5">Teks notifikasi dan nilai perusahaan diambil dari <code>config.toml</code> lewat CLI, bukan ditulis di extension.
+      Teks bawaan ada di <code>monev/teks/bawaan.toml</code>. Ubah di bagian <code>[pesan]</code> config, lalu tekan Muat ulang.</div>
+    <div class="isian kecil" style="margin-top:4px">
+      <span id="nilai"></span>
+      <span id="teksInfo" class="redup"></span>
+      <button id="muatTeks" class="kedua" style="margin-left:auto">Muat ulang</button>
+    </div>
+    <div id="asing" class="waspada kecil hidden"></div>
+  </section>
+
+  <div class="bawah">
+    <select id="jenisCoba" aria-label="Jenis notifikasi uji">
+      <option value="ingat">Pengingat</option><option value="pagi">Sapaan pagi</option><option value="fokus">Fokus hari ini</option>
+    </select>
+    <button id="coba" class="kedua" style="height:36px">Coba notifikasi</button>
+    <span id="info" class="kecil"></span>
+    <button id="simpan" class="utama">Simpan</button>
+  </div>
+</main>
+<script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+/* Tema gelap Monev Kirim (popup + Pengaturan). Warna diambil dari logo: biru latar, oranye antena, hijau centang. */
+:root {
+  color-scheme: dark;
+  --latar: #0b0f17; --kartu: #161b26; --lembut: #1c2232; --kode: #232b3d; --garis: #2b3447;
+  --teks: #e6edf3; --redup: #9aa4b8; --aksen: #3b5bdb; --aksen-teks: #8ea2ff;
+  --ok: #2ea043; --waspada: #f0a020; --waspada-teks: #f0b440; --waspada-latar: #2a2213; --waspada-garis: #7a5c12;
+  --bahaya: #f85149;
+}
+body { margin: 0; font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--teks); background: var(--kartu); }
+a { color: var(--aksen-teks); } a:hover { color: #b3c1ff; }
+code { font-size: 12px; background: var(--kode); border-radius: 4px; padding: 1px 4px; }
+button { font: inherit; color: var(--teks); cursor: pointer; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.utama { height: 36px; padding: 0 16px; font-weight: 600; border-radius: 6px; border: 1px solid var(--aksen); background: var(--aksen); color: #fff; }
+.kedua { height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--garis); background: var(--lembut); }
+.ikon { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; padding: 0;
+        border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--redup); }
+.ikon:hover, .ikon[aria-pressed="true"] { background: var(--lembut); border-color: var(--garis); color: var(--teks); }
+.label { font-size: 12px; font-weight: 600; color: var(--redup); letter-spacing: .04em; text-transform: uppercase; }
+.redup { color: var(--redup); } .ok { color: var(--ok); } .bahaya { color: var(--bahaya); } .waspada { color: var(--waspada-teks); }
+.titik { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none; background: var(--redup); }
+.titik.besar { width: 10px; height: 10px; }
+.titik.ok { background: var(--ok); } .titik.waspada { background: var(--waspada); } .titik.bahaya { background: var(--bahaya); }
+.hidden { display: none !important; }

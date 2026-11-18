@@ -1,0 +1,7 @@
+[extend]
+useDefault = true
+
+# Kunci publik RSA di extension/manifest.json menentukan ID extension dan memang bukan rahasia.
+[allowlist]
+description = "Kunci publik extension Chrome"
+regexes = ['''^MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A''']

@@ -1,0 +1,40 @@
+# Dibuat oleh `monev init`. Tidak ada email, password, token, atau cookie di sini.
+
+[profil]                       # posisi/perusahaan diisi otomatis dari profil Monev saat login pertama
+posisi = ""
+perusahaan = ""
+tim = ""
+panggilan = ""                 # nama sapaan di bot (mis. "Rina"); kosong = nama depan dari profil Monev
+rutinitas = []                 # hanya SARAN saat menyusun draft, selalu dikonfirmasi
+jangan_disebut = []            # nama klien/orang/proyek yang tidak boleh muncul
+
+[profil.nilai]                 # nilai perusahaan di pesan "fokus hari ini" (bot & extension); kosong = tidak ditampilkan
+semboyan = ""                  # contoh: "Bekerja dengan integritas"
+poin = []                      # contoh: ["Integritas: jujur soal progres dan hambatan", ...]; satu poin per hari
+
+# [pesan.ingat.pertama]        # opsional: ganti teks notifikasi extension; kunci dan teks bawaan ada di
+# judul = "..."                # monev/teks/bawaan.toml (yang tidak ditulis di sini tetap memakai bawaan)
+
+[sumber]                       # bahan draft /monev, semuanya dibaca saja (docs/teknis/kontrak-sumber.md)
+mode = "auto"                  # auto | workrecords | checklist
+
+[sumber.workrecords]           # folder catatan kerja harian (format: docs/teknis/kontrak-sumber.md)
+dir = ""
+lewati_folder = ["_knowledge", "_plans"]
+
+[sumber.mcp]                   # MCP kantor (logtime, tiket, aktivitas git, kalender) yang terpasang di agent-mu
+awalan_tool = []               # awalan nama tool (Claude Code: "mcp__<server>__") atau nama server MCP (Hermes)
+
+[sumber.git]                   # commit, PR/MR, review milikmu lewat `gh` / `glab` yang sudah login (`monev bukti`)
+penyedia = []                  # "github" dan/atau "gitlab"; kosong = tidak dipakai
+gitlab_host = "gitlab.com"     # GitLab kantor/self-hosted: ganti dengan host-nya
+
+[bot]                          # jadwal bot Telegram (WIB, hari kerja); dibaca config di server tempat bot jalan
+kartu = "08:00"                # kartu hari ini: sapaan, status laporan, fokus
+pengingat = ["15:00", "16:30", "20:00"]   # hanya bila laporan belum diisi; yang terakhir paling tegas
+rekap = "16:00"                # Jumat: rekap minggu; hari kerja terakhir bulan: rekap bulan
+pantau = ["12:00", "18:00", "22:00"]      # cek perubahan (terkirim, revisi, ditolak) tanpa pengingat
+tunda_menit = 60               # tombol "Ingatkan lagi" di pengingat
+
+[browser]
+channel = "chrome"

@@ -1,0 +1,9 @@
+{
+  "date": "2026-11-16",
+  "status": "PRESENT",
+  "activity_log": "1. Mengikuti onboarding bersama peserta MagangHub di PT Contoh Digital, berupa pengenalan perusahaan, lingkungan kantor, dan aturan kerja selama program magang.\n2. Mengikuti pengenalan dari tim DevOps mengenai peran tim, lingkup pekerjaan, serta alur kerja yang akan dijalani selama magang.\n3. Mengikuti sesi mentoring awal bersama mentor untuk membahas arahan, target, dan cara pelaporan selama program.\n4. Mempelajari aplikasi Monev, meliputi alur pengisian kehadiran dan laporan harian, ketentuan izin, serta proses peninjauan laporan oleh mentor.",
+  "lesson_learned": "Dari onboarding dan pengenalan tim DevOps, saya memahami gambaran lingkungan kerja perusahaan, peran tim DevOps dalam mendukung pengembangan dan operasional aplikasi, serta alur kerja yang akan saya jalani. Dari sesi mentoring, saya memahami pentingnya komunikasi rutin dengan mentor dan pelaporan yang jujur serta teratur, termasuk mengisi laporan harian Monev pada hari yang sama karena laporan tidak dapat diubah setelah terkirim.",
+  "obstacles": "Belum ada kendala berarti pada hari pertama program MagangHub. Penyesuaian yang masih perlu dilakukan adalah memahami alur kerja tim DevOps dan aturan program secara menyeluruh, serta membiasakan diri mencatat aktivitas selama jam kerja agar laporan harian dapat diisi tepat waktu sebelum pukul 23.59.",
+  "sources": ["jawaban:onboarding", "jawaban:pengenalan-devops", "jawaban:mentoring", "sesi:monev"],
+  "approved": true
+}

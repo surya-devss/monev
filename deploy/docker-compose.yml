@@ -1,0 +1,30 @@
+# monev-bot di server sendiri. Panduan: docs/panduan/bot-telegram.md
+#   docker compose -f deploy/docker-compose.yml up -d --build
+# Isi deploy/.env dengan TELEGRAM_BOT_TOKEN dan TELEGRAM_CHAT_ID; file itu tidak boleh di-commit.
+services:
+  monev-bot:
+    image: monev-bot:local
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: monev-bot
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - monev_data:/data          # sesi Chrome, config, state bot
+    shm_size: 256m                # Chrome butuh /dev/shm lebih dari default 64 MB
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 600M
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: "2"
+
+volumes:
+  monev_data:
+    name: monev_data
+    external: true                # dibuat manual saat menyalin profil sesi (docs/panduan/bot-telegram.md)
