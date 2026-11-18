@@ -6,12 +6,13 @@ dengan `monev validate`, tampilkan untuk dibaca ulang, lalu kirim **hanya setela
 | Perintah | Fungsi |
 |---|---|
 | `/monev` | laporan hari ini: status → draft → validasi → review → `kirim` |
+| `/monev setup` | pasang dan sambungkan semuanya, dipandu agent (sesi, extension, sumber bahan, nilai) |
 | `/monev latihan [YYYY-MM-DD]` | menyusun draft untuk tanggal itu tanpa pernah mengirim |
 | `/monev nilai` | cari nilai perusahaan (situs resmi) → isi `[profil.nilai]` setelah disetujui |
 | `/monev:status` | cek status saja (sudah isi, libur, revisi mentor, sesi) |
 
 Butuh CLI `monev` dari repo yang sama. Pengiriman hanya lewat extension monev (`monev kirim`); bila extension belum siap,
-skill membantu memperbaikinya atau memberi teks untuk ditempel manual. Sumber otomatis (MCP kantor, folder work records) opsional, diatur di
+skill membantu memperbaikinya atau memberi teks untuk ditempel manual. Sumber otomatis (Git, MCP kantor, folder work records) opsional, diatur di
 `config.toml` ([kontrak](../docs/teknis/kontrak-sumber.md)).
 
 Skill yang sama dipasang ke Hermes dengan `monev hermes install`.
@@ -21,6 +22,7 @@ Skill yang sama dipasang ke Hermes dengan `monev hermes install`.
 | `.claude-plugin/plugin.json` | metadata plugin |
 | `skills/monev/SKILL.md` | instruksi `/monev` |
 | `skills/monev/references/sources.md` | cara mengambil bahan dari tiap sumber |
+| `skills/monev/references/setup.md` | langkah `/monev setup` |
 | `skills/monev/references/writing-guide.md` | gaya tulisan dan contoh laporan |
 | `skills/status/SKILL.md` | instruksi `/monev:status` |
 

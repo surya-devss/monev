@@ -158,12 +158,17 @@ Satu proses (`monev bot`) per orang. Polling Telegram (long polling, tanpa webho
 harian berjalan di loop yang sama. Setiap pengecekan membuka Chrome A headless, membaca Monev, lalu menutup Chrome
 lagi, jadi memori hanya terpakai saat mengecek (puncak terukur ±300 MB).
 
+Chat dibuat tetap pendek: kartu hari ini, pengingat yang sudah selesai, pesan gangguan, dan menu diperbarui di tempat
+(id pesannya disimpan di state per hari). Hasil baca Monev disimpan 10 menit di memori untuk status dan rekap yang
+ditekan lagi; jadwal, **↻ Segarkan**, dan "Sudah kirim, cek" selalu membaca ulang.
+
 | Bagian | File | Tugas |
 |---|---|---|
-| Klien Telegram | `monev/bot/telegram.py` | `sendMessage`, `getUpdates`, menu perintah, membaca token dari env/.env |
-| Teks pesan | `monev/bot/pesan.py` | semua kalimat yang dikirim ([contoh](format-pesan-telegram.md)) |
-| Jadwal | `monev/bot/jadwal.py` | jam WIB, kapan pesan dikirim, state anti-dobel (`<data_dir>/bot-state.json`) |
-| Proses | `monev/bot/app.py` | loop polling + jadwal, menjawab perintah, mengambil data Monev |
+| Klien Telegram | `monev/bot/telegram.py` | kirim dan edit pesan, rich message, `getUpdates`, menu perintah, membaca token dari env/.env |
+| Teks kalimat | `monev/teks/bawaan.toml` | teks bawaan bot dan notifikasi extension, bisa ditimpa `[pesan]` di config |
+| Susunan pesan | `monev/bot/pesan.py` | merangkai teks, data, dan tombol ([contoh](format-pesan-telegram.md)) |
+| Jadwal | `monev/bot/jadwal.py` | jam dari `[bot]` di config (WIB), kapan pesan dikirim, state anti-dobel (`<data_dir>/bot-state.json`) |
+| Proses | `monev/bot/app.py` | loop polling + jadwal, perintah dan tombol, pembaruan pesan di tempat, simpanan hasil baca |
 
 Di server, bot berjalan sebagai container `monev-bot` (image dari `deploy/Dockerfile`: Python + Google Chrome, user
 non-root). Sesi Chrome A, config, dan state ada di volume `monev_data`. Deploy dan pemulihan sesi:
@@ -178,7 +183,7 @@ Semua dibaca saja (read-only). Detail cara mengambil: [`plugin/skills/monev/refe
 | A | Tanya-jawab | selalu | agent / `monev draft` | melengkapi yang kurang |
 | B | Git: commit, PR/MR, review | `git_penyedia` terisi, `gh`/`glab` login | `monev bukti` | bukti hasil |
 | C | MCP kantor: logtime, tiket, aktivitas git, kalender | `mcp_awalan_tool` terisi dan tool-nya ada di sesi agent | agent | kerangka aktivitas, judul pekerjaan, **kandidat** acara |
-| D | Work records | `workrecords_ada: true` (folder ditemukan `monev sumber cari`) | agent membaca file | aktivitas, pembelajaran, kendala |
+| D | Work records | `workrecords_ada: true` (folder ditemukan `monev sumber cari`) | `monev sumber baca` | aktivitas, pembelajaran, kendala |
 
 Status semua jalur: `monev doctor --tanpa-sesi [--json]`. monev tidak tahu nama alat penghasil bahan; titik temunya hanya kontrak format dan config lokal:
 [`kontrak-sumber.md`](kontrak-sumber.md).
@@ -195,8 +200,10 @@ monev/
 │   ├── kirim.py          kirim, extension
 │   ├── bot.py            bot
 │   ├── agen.py           hermes
-│   └── sumber.py         sumber cari, bukti
+│   └── sumber.py         sumber cari, sumber baca, bukti
 ├── config.py           lokasi config/data, baca & tulis config.toml, state login
+├── teks/               teks bot dan notifikasi extension
+│   └── bawaan.toml       teks bawaan; ditimpa sebagian oleh `[pesan]` di config
 ├── sumber/             sumber bahan yang bisa dibaca CLI (read-only)
 │   ├── catatan.py        temukan & ringkas folder work records dari isinya
 │   ├── git.py            aktivitas Git milik user lewat gh/glab, dibersihkan
@@ -216,18 +223,18 @@ monev/
 │   └── host.py           monev-native-host, pemasangan manifest, diagnosa extension
 └── bot/                bot Telegram (lihat tabel di bagian Bot Telegram)
 
-extension/              Chrome MV3: background.js (ambil pekerjaan), isi-form.js (isi form), popup
+extension/              Chrome MV3: background.js (pekerjaan, pengingat), isi-form.js (isi form), popup, options (Pengaturan)
 plugin/                 plugin Claude Code: skills/monev (/monev), skills/status (/monev:status)
 deploy/                 Dockerfile, docker-compose.yml
 scripts/                alat pemelihara repo (cek-bocor.sh), tidak dipasang ke pemakai
-tests/                  unit test: test_config, test_sumber, test_laporan, test_rekap, test_kirim, test_bot, test_hermes
+tests/                  unit test: test_config, test_sumber, test_laporan, test_rekap, test_kirim, test_bot, test_hermes, test_teks, test_dokumen
 config.example.toml     isi config bawaan (sama dengan yang dibuat `monev`, dicek tes)
 .env.example            kunci bot Telegram (kosong)
 ```
 
-Aturan ketergantungan: `cli/` boleh memakai semua paket; `bot/` memakai `portal/`; `portal/`, `laporan/`,
-`kirim/`, `agen/`, dan `sumber/` tidak saling memakai (hanya `config.py`; `sumber/git.py` memakai pola
-terlarang dari `laporan/aturan.toml` lewat argumen). Paket baru di `monev/` ikut terpasang otomatis
+Aturan ketergantungan: `cli/` boleh memakai semua paket; `bot/` memakai `portal/` dan `teks/`; `kirim/` memakai
+`teks/`; `portal/`, `laporan/`, `kirim/`, `agen/`, dan `sumber/` tidak saling memakai (hanya `config.py`;
+`sumber/git.py` memakai pola terlarang dari `laporan/aturan.toml` lewat argumen). Paket baru di `monev/` ikut terpasang otomatis
 (`pyproject.toml` mencari `monev*`), termasuk di image bot.
 
 ## Batas keamanan

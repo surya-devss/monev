@@ -18,6 +18,7 @@ mengisi form di Chrome-mu dan mengirim, lalu `monev status` memverifikasi.
 | Perintah | Fungsi |
 |---|---|
 | `/monev` | laporan hari ini |
+| `/monev revisi` / `/monev izin` | perbaikan yang diminta mentor / izin tidak hadir hari ini |
 | `/monev latihan [YYYY-MM-DD]` | menyusun draft untuk latihan, **tidak pernah mengirim** |
 | `/monev nilai` | mencari nilai perusahaan di situs resminya, lalu mengisi `[profil.nilai]` setelah kamu setujui |
 | `/monev setup` | pasang dan sambungkan semuanya, dipandu agent (sesi, extension, sumber bahan, nilai) |
@@ -138,8 +139,10 @@ tidak dihitung.
 | `monev kirim FILE [--uji]` | isi dan kirim lewat extension (`--uji`: isi saja, tidak dikirim) |
 | `monev kirim --ping` | cek sambungan CLI ↔ extension ↔ Monev |
 | `monev extension install` | daftarkan jembatan Native Messaging (sekali) |
+| `monev extension coba [pagi\|fokus\|ingat]` | tampilkan notifikasi extension sekarang |
 | `monev hermes install\|uninstall [--profile …] [--symlink]` | pasang/lepas skill `/monev` di Hermes |
-| `monev bot [--chat-id \| --coba help\|ingat\|status\|rekap]` | bot Telegram ([panduan](bot-telegram.md)) |
+| `monev bot [--chat-id \| --coba kartu\|ingat\|status\|rekap\|menu\|help]` | bot Telegram ([panduan](bot-telegram.md)) |
+| `monev init [--force]` | buat config sekarang (opsional, `monev` membuatnya otomatis) |
 | `monev login` / `monev logout` | login ulang / hapus sesi CLI |
 | `monev doctor [--tanpa-sesi] [--json]` | diagnosa config, Chrome, extension, sesi, umur refresh token, dan jalur sumber bahan A–D |
 | `monev sumber cari [--akar DIR]` | temukan folder work records (dikenali dari isinya) |
@@ -175,7 +178,7 @@ seperti [`config.example.toml`](../../config.example.toml).
 | `[sumber.workrecords] dir` | kosong (mode tanya-jawab); diisi sendiri, atau dari env `MONEV_WORK_RECORDS` saat config dibuat |
 | `[sumber.git] penyedia`, `gitlab_host` | kosong; `["github"]` dan/atau `["gitlab"]` ([cara](pasang.md#jalur-b-git)) |
 | `[sumber.mcp] awalan_tool` | kosong; diisi sendiri bila memakai MCP kantor ([cara](pasang.md#sumber-bahan-pilih-jalur)) |
-| `[profil.nilai]` | kosong; `semboyan` + `poin = ["Nama nilai: cara menerapkannya", …]` untuk pesan fokus 09.00 di bot dan extension (satu poin per hari). Agent bisa mencarikan dari situs resmi perusahaanmu lalu mengisinya setelah kamu setujui: `/monev nilai` |
+| `[profil.nilai]` | kosong; `semboyan` + `poin = ["Nama nilai: cara menerapkannya", …]` untuk bagian fokus di kartu hari ini (bot, 08.00) dan notifikasi fokus (extension, 09.00), satu poin per hari. Agent bisa mencarikan dari situs resmi perusahaanmu lalu mengisinya setelah kamu setujui: `/monev nilai` |
 
 Lihat dengan `monev config`, ubah dengan `monev config --edit`. Lokasi lain: env `MONEV_CONFIG`.
 Email dan nomor telepon tidak pernah disimpan.
