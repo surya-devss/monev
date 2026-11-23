@@ -86,6 +86,20 @@ def putuskan(jenis: str, data: dict, lalu: dict, sekarang: datetime, k: Konteks)
     for t in per.get("ditolak_tanggal", []):
         if t not in lama_tolak:
             out.kirim.append(("info", P.ditolak(k.tx, t, per["periode"]["absen_total"])))
+    # State lama tanpa catatan persetujuan: catat dulu tanpa mengabari, supaya persetujuan lama tidak dikirim sekaligus.
+    setuju = per.get("disetujui_tanggal", [])
+    if "disetujui" in lalu:
+        baru_setuju = [t for t in setuju if t not in set(lalu["disetujui"])]
+        if baru_setuju:
+            ps = per.get("persetujuan", {})
+            out.kirim.append(("info", P.disetujui(k.tx, baru_setuju, ps.get("disetujui", 0), sum(ps.values()))))
+
+    versi = data.get("versi_web") or lalu.get("versi_web")
+    if data.get("versi_web") and lalu.get("versi_web") and data["versi_web"] != lalu["versi_web"]:
+        out.kirim.append(("info", P.web_berubah(k.tx)))
+
+    masa_kirim, masa_baru = masa_magang(st, hari, lalu)
+    out.kirim += [("info", P.masa(k.tx, jenis_masa, **isi)) for jenis_masa, isi in masa_kirim]
 
     if kerja:
         out.kartu = P.kartu(k.tx, st, k.nilai, nama)
@@ -104,13 +118,39 @@ def putuskan(jenis: str, data: dict, lalu: dict, sekarang: datetime, k: Konteks)
     if jenis == "rekap" and kerja:
         if hari.weekday() == 4 and data.get("minggu"):
             out.kirim.append(("info", P.rekap_minggu(k.tx, data["minggu"])))
-        if per.get("hari_kerja_terakhir_bulan") and data.get("bulan"):
+        if per.get("hari_kerja_terakhir_periode") and data.get("bulan"):
             out.kirim.append(("info", P.rekap_bulan(k.tx, data["bulan"])))
 
     out.baru = {"tanggal": st["tanggal"], "sudah_isi": bool(st.get("sudah_isi")),
                 "revisi": [r["date"] for r in st.get("perlu_revisi") or []],
-                "ditolak": per.get("ditolak_tanggal", [])}
+                "ditolak": per.get("ditolak_tanggal", []),
+                "disetujui": setuju, "versi_web": versi, **masa_baru}
     return out
+
+
+MASA_HARI = (30, 7, 0)   # kabar H-30, H-7, dan hari terakhir magang
+
+
+def masa_magang(st: dict, hari, lalu: dict) -> tuple[list[tuple[str, dict]], dict]:
+    """Kabar masa magang ([(jenis, isi)], state baru). Satu kabar per ambang; ambang yang terlewat saat bot mati
+    tidak dikirim bertumpuk, cukup yang terdekat. Magang aktif → tidak aktif dikabari sekali."""
+    from datetime import date
+
+    selesai = (st.get("periode") or {}).get("selesai")
+    aktif = bool(st.get("magang_aktif"))
+    sudah = set(lalu.get("masa", []))
+    kirim: list[tuple[str, dict]] = []
+    if selesai:
+        akhir = date.fromisoformat(selesai[:10])
+        sisa = (akhir - hari).days
+        kena = [m for m in MASA_HARI if 0 <= sisa <= m and m not in sudah]
+        if aktif and kena:
+            m = min(kena)
+            kirim.append(("terakhir" if m == 0 else f"h{m}", {"sisa": sisa, "tanggal": akhir}))
+            sudah |= set(kena)
+        if lalu.get("aktif") is True and not aktif:
+            kirim.append(("selesai" if sisa <= 0 else "dini", {"sisa": sisa, "tanggal": akhir}))
+    return kirim, {"masa": sorted(sudah), "aktif": aktif}
 
 
 # ---------------------------------------------------------------- state

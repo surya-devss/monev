@@ -31,6 +31,8 @@ async function monevRingkas() {
         ? logs.filter((l) => l.state === "NEEDS_REVISION").map((l) => ({ date: (l.date || "").slice(0, 10), catatan_mentor: l.reviewer_notes || "" }))
         : null,
       nama: (me.name || "").toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase()), posisi: me.job_role || "", perusahaan: me.internship_company || "",
+      // Nama file utama frontend; berganti setiap situs di-deploy ulang (sama dengan versi_web di monev/portal/browser.py).
+      versi_web: (document.querySelector('script[type=module][src*="/_nuxt/"]') || { getAttribute: () => null }).getAttribute("src"),
     };
   } catch (e) {
     return { ok: false, tahap: "api", pesan: String(e) };
@@ -290,29 +292,44 @@ async function monevJalankan(job) {
   if (!ta) return hasil(false, "form", "Form laporan tidak ditemukan (tampilan Monev mungkin berubah).", { status });
 
   // 5. Kehadiran = Hadir (teks persis "Hadir", bukan "Tidak Hadir …")
-  const labelHadir = semua("label").find((l) => teks(l) === "Hadir");
-  if (labelHadir) {
+  const pilihHadir = async () => {
+    const labelHadir = semua("label").find((l) => teks(l) === "Hadir");
+    if (!labelHadir) return;
     const input = labelHadir.control || document.getElementById(labelHadir.htmlFor);
     if (!input || !input.checked) { labelHadir.click(); await sleep(300); }
-  }
+  };
 
+  // 6–7. Isi lalu periksa, sampai 3 kali (sama dengan izin, uji #43 dan #58). Di tab yang baru dimuat, Monev bisa
+  // mengatur ulang form saat data hari ini selesai dimuat, dan textarea bisa diganti elemen baru. Status validasi dibaca
+  // dari class Vuetify per kolom, bukan teks pesan: di tab yang tidak terlihat, teks "Minimal 100 karakter" bisa
+  // tertinggal walau isian sudah valid (uji #58: percobaan pertama ditolak, kedua terkirim tanpa perubahan).
+  const cekIsi = (kolom) => {
+    const putus = Object.keys(PH).filter((k) => !kolom[k].isConnected);
+    if (putus.length) return "kolom diganti halaman: " + putus.join(", ");
+    const beda = Object.keys(PH).filter((k) => kolom[k].value !== job.draft[k]);
+    if (beda.length) return "isi kolom tidak sama dengan draft: " + beda.join(", ");
+    const ditolak = Object.keys(PH).filter((k) => {
+      const input = kolom[k].closest(".v-input");
+      return input && input.classList.contains("v-input--error");
+    });
+    return ditolak.length ? "form menolak kolom: " + ditolak.join(", ") : "";
+  };
   langkah("isi");
-  // 6. Isi + picu event (tanpa event, form menganggap kosong; uji #7)
-  const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
-  for (const [k, el] of Object.entries(ta)) {
-    el.focus();
-    setter.call(el, job.draft[k]);
-    el.dispatchEvent(new Event("input", { bubbles: true }));
-    el.dispatchEvent(new Event("change", { bubbles: true }));
-    el.dispatchEvent(new Event("blur", { bubbles: true }));
+  await sleep(2000);   // beri waktu data hari ini termuat sebelum form diubah
+  let masalah = "belum dicoba";
+  for (let coba = 0; coba < 3 && masalah; coba++) {
+    const kolom = cariTextarea();
+    if (!kolom) { masalah = "kolom laporan tidak ditemukan"; await sleep(1000); continue; }
+    ta = kolom;
+    await pilihHadir();
+    for (const [k, el] of Object.entries(ta)) monevIsi(el, job.draft[k]);   // tanpa event, form menganggap kosong (uji #7)
+    await sleep(1500);
+    masalah = cekIsi(ta);
   }
-  await sleep(800);
-
-  // 7. Periksa isi == draft, tidak ada pesan validasi
-  const beda = Object.keys(PH).filter((k) => ta[k].value !== job.draft[k]);
-  if (beda.length) return hasil(false, "isi", "Isi kolom tidak sama dengan draft: " + beda.join(", "), { status });
-  const pesanValidasi = semua(".v-messages__message").map(teks).filter(Boolean);
-  if (pesanValidasi.length) return hasil(false, "validasi", "Form menolak: " + pesanValidasi.join("; "), { status });
+  if (masalah) {
+    const tahap = masalah.startsWith("form menolak") ? "validasi" : "isi";
+    return hasil(false, tahap, "Form belum siap (" + masalah + "). Tidak dikirim.", { status });
+  }
   const panjang = Object.keys(PH).map((k) => ta[k].value.length);
 
   langkah("lokasi");

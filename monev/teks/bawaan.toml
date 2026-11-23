@@ -35,6 +35,14 @@ isi = "Kalau sampai {batas} belum terkirim, hari ini dihitung absen."
 [login]
 judul = "Sesi Monev di Chrome ini habis."
 isi = "Login ulang di tab Monev supaya pengingat dan pengiriman tetap jalan."
+hampir_judul = "Sesi Monev di Chrome ini habis {kapan} ({tanggal})."
+hampir_isi = "Buka Monev di Chrome ini supaya sesinya diperpanjang, atau login ulang bila sudah diminta."
+
+# Situs Monev di-deploy ulang. Dipakai bot (Telegram) dan extension (notifikasi desktop).
+[web]
+judul = "Tampilan situs Monev baru saja diperbarui."
+isi = "Membaca status masih jalan, tetapi form laporan bisa saja ikut berubah."
+tindakan = "Sebelum kirim berikutnya, coba dulu dengan `monev kirim --uji`."
 
 [hasil.terkirim]
 judul = "Laporan {tanggal} sudah terkirim."
@@ -83,10 +91,66 @@ judul = "Mentor minta revisi laporan {tanggal}."
 tanpa_catatan = "Tanpa catatan."
 tindakan = "Perbaiki dari laptop dengan `/monev revisi`."
 
+[bot.disetujui]
+judul = "Laporan {tanggal} disetujui mentor."
+isi = "Total disetujui {jumlah} dari {total} laporan terkirim."
+
 [bot.ditolak]
 judul = "Kehadiran {tanggal} ditolak mentor."
-isi = "Hari itu dihitung absen. Total absen sekarang {absen} dari batas peringatan {batas_absen}."
+isi = "Hari itu dihitung absen. Absen periode ini sekarang {absen} (peringatan di {batas_absen})."
 tindakan = "Kalau menurutmu keliru, tanyakan ke mentor."
+
+# Kabar dari draft terjadwal di laptop. Isi laporan tidak pernah ikut.
+[bot.draft.siap]
+judul = "Draft laporan {tanggal} sudah siap."
+isi = "Disusun otomatis dari catatan kerja, belum dikirim."
+tindakan = "Periksa dan kirim dari laptop dengan `/monev`."
+
+[bot.draft.kosong]
+judul = "Draft laporan {tanggal} belum disusun."
+isi = "Bahan hari ini masih kosong sampai jadwal terakhir."
+tindakan = "Lengkapi catatan kerja, lalu isi dari laptop dengan `/monev`."
+
+[bot.draft.cek]
+judul = "Draft laporan {tanggal} gagal disusun otomatis."
+isi = "Prosesnya gagal atau hasilnya tidak lolos pemeriksaan."
+tindakan = "Isi dari laptop dengan `/monev`."
+
+[bot.draft.sesi]
+judul = "Draft laporan {tanggal} belum disusun."
+isi = "Sesi Monev di laptop habis, jadi status hari ini tidak terbaca."
+tindakan = "Login ulang dengan menjalankan `monev` di terminal laptop."
+
+[bot.draft.format]
+judul = "Draft laporan {tanggal} belum disusun."
+isi = "Bentuk data Monev berubah, jadi proses berhenti supaya tidak salah membaca status."
+tindakan = "Isi dari laptop dengan `/monev` sambil menunggu tool diperbarui."
+
+[bot.draft.sesi_hampir]
+judul = "Sesi Monev di laptop habis {kapan} ({tanggal})."
+isi = "Setelah itu draft otomatis dan `monev status` berhenti."
+tindakan = "Login ulang dengan `monev login` di terminal laptop."
+
+# Kabar masa magang dari tanggal selesai di profil Monev.
+[bot.masa.h30]
+judul = "Masa magang selesai dalam {sisa} hari ({tanggal})."
+isi = "Di bulan terakhir, isi survei yang diminta Monev supaya laporan tidak ditolak."
+
+[bot.masa.h7]
+judul = "Masa magang selesai dalam {sisa} hari ({tanggal})."
+isi = "Tetap kirim laporan setiap hari kerja sampai hari terakhir."
+
+[bot.masa.terakhir]
+judul = "Hari ini hari terakhir magang ({tanggal})."
+isi = "Jangan lupa kirim laporan hari ini. Terima kasih sudah konsisten sampai akhir."
+
+[bot.masa.selesai]
+judul = "Masa magang sudah selesai."
+isi = "Monev menandai magang tidak aktif. Pengingat dan rekap berhenti."
+
+[bot.masa.dini]
+judul = "Monev menandai magang tidak aktif sebelum tanggal selesai ({tanggal})."
+isi = "Pengingat dan rekap berhenti. Tanyakan ke mentor atau admin program bila ini keliru."
 
 [bot.sesi]
 judul = "Sesi Monev di server habis {kapan} ({tanggal})."
@@ -95,10 +159,15 @@ tindakan = "Login ulang di laptop lalu salin sesinya ke server, caranya ada di `
 
 [bot.gangguan]
 judul = "Bot belum bisa membaca Monev."
-isi = "Penyebabnya {alasan}. Pengingat ditunda dulu."
 percobaan = "Dicoba {jam}. Berikutnya {berikut}."
 pulih = "Pulih pukul {jam}, pengingat jalan lagi."
 cara = "Login ulang di laptop dengan perintah monev, lalu salin sesinya ke server. Panduan ada di docs/panduan/bot-telegram.md."
+
+[bot.gangguan.sebab]
+sesi = "Sesi Monev di server habis, perlu login ulang. Pengingat ditunda dulu."
+monev = "Situs Monev tidak bisa dihubungi atau terlalu lambat. Biasanya pulih sendiri, pengingat ditunda dulu."
+format = "Bentuk data Monev berubah ({alasan}). Bot berhenti dulu supaya tidak salah kabar, tool perlu diperbarui."
+lain = "Penyebabnya {alasan}. Pengingat ditunda dulu."
 
 [bot.status]
 belum = "Laporan hari ini belum diisi."
@@ -128,6 +197,9 @@ terakhir = "Pengingat terakhir"
 rekap = "Rekap minggu (Jumat)"
 isi = "Ubah di `config.toml` server bagian `[bot]`, lalu restart bot."
 
+[bot.rekap]
+periode = "Periode {ke}"
+
 [bot.bantuan]
 judul = "monev bot mengingatkan dan merekap laporan Monev kamu."
 isi = "Pengingat otomatis jam {jam} WIB di hari kerja, hanya bila laporan belum diisi."
@@ -142,7 +214,7 @@ rekap = "Rekap"
 menu = "Menu"
 status_hari_ini = "Status hari ini"
 rekap_minggu = "Rekap minggu"
-rekap_bulan = "Rekap bulan"
+rekap_bulan = "Rekap periode"
 jadwal = "Jadwal pengingat"
 bantuan = "Bantuan"
 kembali = "‹ Menu"

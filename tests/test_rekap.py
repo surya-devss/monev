@@ -1,7 +1,7 @@
 import unittest
 from datetime import date
 
-from monev.portal.rekap import hitung, jendela, libur_berlaku
+from monev.portal.rekap import hitung, jendela, libur_berlaku, periode_berjalan
 
 ME = {"internship_start_date": "2026-11-16T00:00:00+07:00", "internship_end_date": "2027-05-15T23:59:59+07:00",
       "off_days": ["SATURDAY", "SUNDAY"], "internship_location_province_code": "32",
@@ -75,20 +75,61 @@ class TestUntukBot(unittest.TestCase):
         self.assertEqual([h["kehadiran"] for h in r["harian"]], ["hadir", "ditolak", "belum"])
         self.assertEqual([h["mentor"] for h in r["harian"]], ["revisi", "ditolak", "-"])
         self.assertEqual(r["ditolak_tanggal"], ["2026-11-17"])
+        self.assertEqual(r["disetujui_tanggal"], ["2026-11-16"])
 
-    def test_hari_kerja_terakhir_bulan(self):
-        # 30 Nov 2026 = Senin (hari kerja terakhir); 27 Nov (Jumat) bukan
-        self.assertTrue(hitung(ME, [], [], [], date(2026, 11, 30), date(2026, 11, 30),
-                               date(2026, 11, 30))["hari_kerja_terakhir_bulan"])
-        self.assertFalse(hitung(ME, [], [], [], date(2026, 11, 27), date(2026, 11, 27),
-                                date(2026, 11, 27))["hari_kerja_terakhir_bulan"])
+    def test_hari_kerja_terakhir_periode(self):
+        # Periode 1 = 16 Nov–15 Des 2026. 15 Des = Selasa (hari kerja terakhir); 30 Nov dan 14 Des bukan
+        terakhir = lambda d: hitung(ME, [], [], [], d, d, d)["hari_kerja_terakhir_periode"]  # noqa: E731
+        self.assertTrue(terakhir(date(2026, 12, 15)))
+        self.assertFalse(terakhir(date(2026, 12, 14)))
+        self.assertFalse(terakhir(date(2026, 11, 30)))
+
+
+class TestPeriode(unittest.TestCase):
+    def test_periode_bulan_sejak_mulai(self):
+        mulai = date(2026, 11, 16)
+        self.assertEqual(periode_berjalan(mulai, date(2026, 11, 19)), (1, date(2026, 11, 16), date(2026, 12, 15)))
+        self.assertEqual(periode_berjalan(mulai, date(2026, 12, 15)), (1, date(2026, 11, 16), date(2026, 12, 15)))
+        self.assertEqual(periode_berjalan(mulai, date(2026, 12, 16)), (2, date(2026, 12, 16), date(2027, 1, 15)))
+        self.assertEqual(periode_berjalan(mulai, date(2027, 5, 15)), (6, date(2027, 4, 16), date(2027, 5, 15)))
+
+    def test_mulai_akhir_bulan_dipotong(self):
+        self.assertEqual(periode_berjalan(date(2027, 1, 31), date(2027, 3, 1)), (2, date(2027, 2, 28), date(2027, 3, 30)))
+
+    def test_absen_dan_izin_per_periode_berturut_lintas_periode(self):
+        # Periode 1: izin 4 Des dan absen 14–15 Des (2 hari). Periode 2 mulai 16 Des: absen 16 Des.
+        hadir = [att(d.isoformat()) for d in (date(2026, 11, 16) + __import__("datetime").timedelta(days=i)
+                                               for i in range(28)) if d.weekday() < 5 and d.day != 4]
+        atts = hadir + [att("2026-12-04", status="ON_LEAVE")]
+        atts = [a for a in atts if a["date"] not in ("2026-12-14", "2026-12-15")]
+        r = hitung(ME, atts, [], [], date(2026, 12, 16), date(2026, 12, 17), date(2026, 12, 17))
+        p = r["periode"]
+        self.assertEqual((p["ke"], p["awal"], p["akhir"]), (2, "2026-12-16", "2027-01-15"))
+        self.assertEqual(p["izin"], 0)                     # izin periode 1 tidak terbawa
+        self.assertEqual(p["absen_total"], 1)              # hanya 16 Des
+        self.assertEqual(p["absen_berturut"], 3)           # 14, 15, 16 Des tetap berturut
+
+
+class TestBentukData(unittest.TestCase):
+    def test_field_wajib_hilang_ditolak(self):
+        from monev.portal.api import FormatBerubah, wajib
+
+        home = {"date": "2026-11-19", "is_holiday": False, "is_scheduled_off_day": False, "has_attendance": True,
+                "active_internship": True}
+        self.assertIs(wajib("/users/me/home", home), home)
+        self.assertEqual(wajib("/attendances", []), [])
+        with self.assertRaisesRegex(FormatBerubah, "is_holiday"):
+            wajib("/users/me/home", {k: v for k, v in home.items() if k != "is_holiday"})
+        with self.assertRaisesRegex(FormatBerubah, "approval_status"):
+            wajib("/attendances", [att("2026-11-19"), {"date": "2026-11-18", "status": "PRESENT"}])
 
 
 class TestJendela(unittest.TestCase):
     def test_minggu_dan_bulan(self):
         today = date(2026, 11, 19)  # Kamis
         self.assertEqual(jendela("minggu", today, date(2026, 11, 16))[0], date(2026, 11, 16))
-        self.assertEqual(jendela("bulan", today, date(2026, 11, 16))[0], date(2026, 11, 1))
+        self.assertEqual(jendela("bulan", today, date(2026, 11, 16))[0], date(2026, 11, 16))   # periode berjalan
+        self.assertEqual(jendela("bulan", date(2026, 12, 20), date(2026, 11, 16))[0], date(2026, 12, 16))
 
 
 if __name__ == "__main__":

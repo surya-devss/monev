@@ -10,10 +10,12 @@
     "scripting",
     "storage",
     "tabs",
-    "notifications"
+    "notifications",
+    "cookies"
   ],
   "host_permissions": [
-    "https://monev.maganghub.kemnaker.go.id/*"
+    "https://monev.maganghub.kemnaker.go.id/*",
+    "https://monev-api.maganghub.kemnaker.go.id/*"
   ],
   "options_ui": {
     "page": "options.html",

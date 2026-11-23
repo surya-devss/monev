@@ -9,9 +9,12 @@ from __future__ import annotations
 import os
 import re
 import time
+from datetime import date, timedelta
 from pathlib import Path
 
 JUDUL_AKTIVITAS = "## Daily activity log"
+JUDUL_WAKTU = "## Daily time log"
+CARRY_OVER = re.compile(r"carry-over dari (\d{4}-\d{2}-\d{2}) (\d{1,2}:\d{2})-(\d{1,2}:\d{2})", re.I)
 BARIS_TANGGAL = re.compile(r"^\|\s*(\d{4}-\d{2}-\d{2})\s*\|", re.M)
 MAKS_UKURAN = 1_000_000            # byte; file lebih besar dilewati
 # Folder yang tidak mungkin berisi catatan kerja dan mahal untuk dipindai.
@@ -50,20 +53,61 @@ def _frontmatter(teks: str) -> dict:
     out = {}
     for baris in (m.group(1).splitlines() if m else []):
         k, _, v = baris.partition(":")
-        if k.strip() in ("title", "status") and v.strip():
+        if k.strip() in ("title", "status", "client") and v.strip():
             out[k.strip()] = v.split("#")[0].strip().strip('"').strip("'")
     return out
 
 
+def baris_waktu(teks: str) -> list[dict]:
+    """Baris Daily time log (kontrak K8): tanggal, mulai, selesai, kegiatan, dan asal carry-over bila ada."""
+    hasil = []
+    for baris in _bagian(teks, JUDUL_WAKTU).splitlines():
+        sel = [s.strip() for s in baris.strip().strip("|").split("|")]
+        if len(sel) < 5 or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", sel[0]) or not re.fullmatch(r"\d{1,2}:\d{2}", sel[1]):
+            continue
+        asal = [{"tanggal": t, "mulai": m, "selesai": s} for t, m, s in CARRY_OVER.findall(baris)]
+        hasil.append({"tanggal": sel[0], "mulai": sel[1].zfill(5), "selesai": sel[2].zfill(5),
+                      "kegiatan": sel[4], "asal": asal})
+    return hasil
+
+
+def kerja_luar_jam(folder: Path, tanggal: str, tanggal_laporan: set[str], jam_selesai: str = "17:00",
+                   lewati: list[str] | None = None, hari: int = 7) -> list[dict]:
+    """Kerja sejak laporan terakhir sebelum `tanggal`: sesudah jam kerja, atau di hari tanpa laporan (akhir pekan,
+    libur). Kerja yang lebih lama sudah pernah ditawarkan saat review laporan sebelumnya, jadi tidak muncul lagi."""
+    sebelumnya = [t for t in tanggal_laporan if t < tanggal]
+    if not sebelumnya or not folder.is_dir():
+        return []
+    lewati = {x.lower() for x in lewati or []}
+    awal = max(max(sebelumnya), (date.fromisoformat(tanggal) - timedelta(days=hari)).isoformat())
+    hasil = []
+    for sub in sorted(folder.iterdir()):
+        if not sub.is_dir() or sub.name.startswith(("_", ".")) or sub.name.lower() in lewati:
+            continue
+        for f in sorted(sub.glob("*.md")):
+            try:
+                teks = f.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            for r in baris_waktu(teks):
+                if r["asal"] or not awal <= r["tanggal"] < tanggal:
+                    continue
+                if r["tanggal"] in tanggal_laporan and r["mulai"] < jam_selesai:
+                    continue
+                hasil.append({"tanggal": r["tanggal"], "mulai": r["mulai"], "selesai": r["selesai"],
+                              "proyek": sub.name, "kegiatan": r["kegiatan"]})
+    return sorted(hasil, key=lambda x: (x["tanggal"], x["mulai"]))
+
+
 def baca(folder: Path, tanggal: str, lewati: list[str] | None = None) -> list[dict]:
-    """Bahan hari `tanggal` dari folder work records, sesuai kontrak K2–K6: baris Daily activity log hari itu
-    (bukan tabel lain seperti Daily time log), baris Decision/Pitfall/Observasi bertanggal itu, judul, dan status."""
-    lewati = set(lewati or [])
+    """Bahan hari `tanggal` dari folder work records, sesuai kontrak K2–K8: baris Daily activity log hari itu,
+    baris Decision/Pitfall/Observasi bertanggal itu, judul, status, dan logtime hari itu yang berasal dari hari lain."""
+    lewati = {x.lower() for x in lewati or []}
     hasil = []
     if not folder.is_dir():
         return hasil
     for sub in sorted(folder.iterdir()):
-        if not sub.is_dir() or sub.name.startswith(("_", ".")) or sub.name in lewati:
+        if not sub.is_dir() or sub.name.startswith(("_", ".")) or sub.name.lower() in lewati:
             continue
         for f in sorted(sub.glob("*.md")):
             try:
@@ -79,12 +123,31 @@ def baca(folder: Path, tanggal: str, lewati: list[str] | None = None) -> list[di
             pembelajaran = [{"jenis": m.group(1), "teks": m.group(3).strip()}
                             for m in BARIS_PEMBELAJARAN.finditer(_bagian(teks, JUDUL_PEMBELAJARAN))
                             if m.group(2) == tanggal]
-            if not aktivitas and not pembelajaran:
+            carry_over = [{"kegiatan": r["kegiatan"], "asal": r["asal"]} for r in baris_waktu(teks)
+                          if r["tanggal"] == tanggal and r["asal"]]
+            if not aktivitas and not pembelajaran and not carry_over:
                 continue
             fm = _frontmatter(teks)
             judul = fm.get("title") or next((b[2:].strip() for b in teks.splitlines() if b.startswith("# ")), f.stem)
             hasil.append({"file": f"{sub.name}/{f.name}", "proyek": sub.name, "judul": judul,
-                          "status": fm.get("status", ""), "aktivitas": aktivitas, "pembelajaran": pembelajaran})
+                          "client": fm.get("client", ""), "status": fm.get("status", ""),
+                          "aktivitas": aktivitas, "pembelajaran": pembelajaran, "carry_over": carry_over})
+    return hasil
+
+
+def daftar_proyek(folder: Path, lewati: list[str] | None = None) -> list[dict]:
+    """Nama proyek dan klien dari semua catatan (bukan hanya satu tanggal), untuk saringan nama di laporan."""
+    lewati = {x.lower() for x in lewati or []}
+    hasil = []
+    if not folder.is_dir():
+        return hasil
+    for sub in sorted(folder.iterdir()):
+        if not sub.is_dir() or sub.name.startswith(("_", ".")) or sub.name.lower() in lewati:
+            continue
+        for f in sorted(sub.glob("*.md")):
+            if tanggal_catatan(f):
+                teks = f.read_text(encoding="utf-8", errors="ignore")
+                hasil.append({"proyek": sub.name, "client": _frontmatter(teks).get("client", "")})
     return hasil
 
 

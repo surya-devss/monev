@@ -14,6 +14,9 @@ Untuk manusia maupun agent AI yang membaca repo ini: mulai dari baris yang cocok
 | Format work records apa yang dibaca? Apa yang boleh dipanggil dari MCP? | [`teknis/kontrak-sumber.md`](teknis/kontrak-sumber.md) |
 | Alur harian: draft → validasi → kirim? Izin dan revisi? | [`panduan/pemakaian.md`](panduan/pemakaian.md) |
 | Dari mana isi draft diambil? | [`panduan/pemakaian.md`](panduan/pemakaian.md#dari-mana-isi-draft-diambil) |
+| Kenapa draft ditolak karena nama klien? | [`panduan/pemakaian.md`](panduan/pemakaian.md#aturan-isi-laporan) |
+| Bagaimana kerja malam dan carry-over dilaporkan? | [`panduan/pemakaian.md`](panduan/pemakaian.md#kerja-malam-akhir-pekan-dan-carry-over) |
+| Bagaimana mengukur kualitas draft? | [`panduan/pemakaian.md`](panduan/pemakaian.md#mengukur-kualitas-draft) |
 | Pengingat dan sapaan pagi (extension atau Telegram)? | [`panduan/pemakaian.md`](panduan/pemakaian.md#pengingat-di-chrome-tanpa-bot), [`panduan/bot-telegram.md`](panduan/bot-telegram.md) |
 | Bagaimana extension dan CLI bekerja? | [`teknis/arsitektur.md`](teknis/arsitektur.md) |
 | Fakta aplikasi Monev (API, form, aturan program)? | [`teknis/situs-monev.md`](teknis/situs-monev.md) |
@@ -54,6 +57,8 @@ Untuk yang ingin mengubah kode atau memahami alasan di balik rancangan.
 ## Aturan pemeliharaan
 
 - Perubahan perilaku skill → ubah `plugin/skills/monev/` **dan** `teknis/arsitektur.md` di commit yang sama.
+- Fitur atau perilaku baru → sebelum merge, periksa `README.md`, `panduan/pemakaian.md`, `teknis/arsitektur.md`,
+  dan `/monev setup` di PR yang sama.
 - Perubahan yang terasa oleh pemakai → tambah baris di `CHANGELOG.md` bagian `[Unreleased]` di commit yang sama.
 - Di `situs-monev.md`, setiap fakta diberi sumber: `uji`, `bundle`, `panduan`, atau `belum diketahui`.
 - Teks pesan bot diubah di `monev/teks/bawaan.toml` (susunannya di `monev/bot/pesan.py`), lalu contoh di

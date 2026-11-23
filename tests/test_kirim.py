@@ -156,7 +156,10 @@ class TestManifestExtension(unittest.TestCase):
         der = base64.b64decode(man["key"])
         ext_id = "".join("abcdefghijklmnop"[int(c, 16)] for c in hashlib.sha256(der).hexdigest()[:32])
         self.assertEqual(ext_id, host.EXTENSION_ID)
-        self.assertEqual(man["host_permissions"], ["https://monev.maganghub.kemnaker.go.id/*"])
+        # Host API hanya untuk chrome.cookies membaca tanggal habis sesi; panggilan API tetap dari dalam halaman Monev.
+        self.assertEqual(man["host_permissions"], ["https://monev.maganghub.kemnaker.go.id/*",
+                                                   "https://monev-api.maganghub.kemnaker.go.id/*"])
+        self.assertIn("cookies", man["permissions"])
 
 
 if __name__ == "__main__":

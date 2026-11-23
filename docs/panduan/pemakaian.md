@@ -42,6 +42,65 @@ tersambung dilewati.
 Tiap kalimat di draft harus punya sumber. Nomor tiket, nama orang, link, dan IP dari sumber hanya jadi bahan dan
 ditolak `monev validate` bila ikut tertulis.
 
+### Kerja malam, akhir pekan, dan carry-over
+
+| Kondisi | Yang terjadi di draft |
+|---|---|
+| Logtime hari ini berasal dari hari lain (`carry-over dari …` di work records) | tidak dihitung sebagai kerja hari ini |
+| Kerja di luar jam sejak laporan terakhir yang belum tertulis di laporan mana pun | masuk laporan berikutnya: "melanjutkan … yang dikerjakan di luar jam kerja pada …", dan disebut di keraguan supaya bisa kamu hapus |
+| Kerja yang sudah pernah dilaporkan | dilewati |
+
+### Mengukur kualitas draft
+
+Jalankan `/monev latihan <tanggal>` untuk hari yang laporannya sudah terkirim, lalu:
+
+```bash
+monev eval                         # skor semua draft latihan
+monev eval --lewati 2026-11-16     # lewati hari yang sengaja berbeda dari sumber
+```
+
+Skor dihitung dari kegiatan dan pembelajaran. Kecocokan kendala ditampilkan saja karena kendala yang sama sering ditulis
+dengan kata berbeda. Pakai skor untuk membandingkan hasil antar versi aturan, bukan sebagai nilai mutlak.
+
+### Draft otomatis
+
+Laptop bisa menyiapkan draft sendiri, jadi kamu tinggal memeriksa dan menyetujui. Pasang sekali:
+
+```bash
+monev jadwal pasang    # aktifkan jadwal
+monev jadwal status    # lihat jadwal berikutnya
+monev jadwal lepas     # matikan jadwal
+```
+
+Proses berjalan pukul 16.00, 17.00, 18.00, dan 19.00 WIB (`[jadwal] jam` di config). Jadwal yang terlewat saat laptop
+mati atau tidur disusul setelah laptop menyala. Proses berhenti bila hari libur, laporan sudah terisi, atau draft hari
+itu sudah ada. Bila bahan masih kosong, proses mencoba lagi di jam berikutnya.
+
+| Pesan Telegram | Kapan muncul | Yang dilakukan |
+|---|---|---|
+| Draft laporan … sudah siap. | begitu draft tersimpan, biasanya jadwal 16.00 | jalankan `/monev`, baca draft, lalu balas `kirim` atau koreksi |
+| Draft laporan … belum disusun. Bahan hari ini masih kosong… | jadwal terakhir (19.00) bila belum ada catatan kerja | lengkapi catatan kerja, lalu `/monev` |
+| Draft laporan … gagal disusun otomatis. | jadwal terakhir (19.00) bila penyusunan gagal | jalankan `/monev` di laptop |
+| Draft laporan … belum disusun. Sesi Monev di laptop habis… | jadwal pertama yang tidak bisa membaca Monev | jalankan `monev` di terminal untuk login |
+| Draft laporan … belum disusun. Bentuk data Monev berubah… | saat itu juga | isi dari laptop dengan `/monev`, tool perlu diperbarui |
+| Sesi Monev di laptop habis dalam … hari (…). | jadwal pertama tiap hari bila sisa ≤ 3 hari | `monev login` di terminal laptop |
+
+Formatnya sama dengan pesan bot lain, contohnya ada di
+[`format-pesan-telegram.md`](../teknis/format-pesan-telegram.md#22-kabar-draft-terjadwal). Pesan tidak memuat isi laporan. Proses terjadwal tidak bisa mengirim laporan, jadi laporan tetap terkirim hanya setelah
+kamu membalas `kirim`. Untuk memakai MCP kantor, tulis nama lengkap tool yang hanya membaca di `[jadwal] alat_mcp`.
+
+### Draft selalu bersih
+
+| Kondisi | Yang terjadi pada `<draft_dir>/<tanggal>.json` |
+|---|---|
+| Laporan terkirim | langsung dihapus oleh `monev kirim` |
+| Hasil kirim tidak pasti | disimpan sampai laporan terbukti masuk arsip |
+| Tidak jadi dikirim | dihapus setelah 7 hari |
+| Perbaikan dari mentor | disimpan sampai perbaikannya terkirim |
+
+Draft `latihan-<tanggal>.json` tidak ikut dihapus karena dipakai `monev eval`. Salinan laporan yang terkirim tetap ada
+di folder arsip.
+
 ## Tanpa agent (terminal saja)
 
 ```bash
@@ -76,7 +135,7 @@ Klik ikon Monev Kirim di toolbar Chrome:
 | Revisi mentor | catatan mentor + tombol **Lihat di Riwayat**, bila ada |
 | Sedang mengirim | progres saat `monev kirim` berjalan: buka form, isi, cek lokasi, kirim, pastikan masuk |
 | Pengiriman terakhir | tanggal, jenis, hasil |
-| Bawah | kesehatan: CLI terhubung, login Monev di Chrome ini, jumlah jadwal pengingat |
+| Bawah | kesehatan: CLI terhubung, login Monev di Chrome ini beserta tanggal habisnya (kuning bila sisa ≤ 3 hari), jumlah jadwal pengingat |
 
 Status tampil dari simpanan terakhir dulu, lalu diperbarui (otomatis bila lebih tua dari 5 menit). Bila CLI belum
 tersambung, popup menampilkan langkah pemasangan.
@@ -97,7 +156,9 @@ Extension bisa memunculkan notifikasi desktop sendiri, tanpa server dan tanpa Te
 Notifikasi pengingat punya tombol **Buka form** dan **Ingatkan … menit lagi**. Setelah `monev kirim` selesai, muncul
 notifikasi hasilnya (terkirim, gagal, atau belum pasti). Jam mengikuti jam komputer. Bila Chrome baru dibuka lebih
 dari 30 menit setelah suatu jadwal, jadwal itu dilewati. Bila sesi Monev di Chrome habis, muncul notifikasi untuk
-login ulang. Tombol **Coba notifikasi** di Pengaturan, atau `monev extension coba pagi|fokus|ingat` dari terminal,
+login ulang, dan sapaan pagi didahului peringatan bila sesinya tinggal ≤ 3 hari. Tanggal habis dibaca dari cookie
+sesi lewat izin `cookies` (hanya tanggalnya, nilainya tidak disimpan). Bila tampilan situs Monev berganti versi,
+muncul notifikasi untuk mencoba `monev kirim --uji` sebelum kirim berikutnya. Tombol **Coba notifikasi** di Pengaturan, atau `monev extension coba pagi|fokus|ingat` dari terminal,
 mengecek Monev sekarang dan menampilkan notifikasi itu.
 
 **Teks notifikasi** tidak ditulis di extension. Teks bawaan ada di `monev/teks/bawaan.toml`; untuk mengganti
@@ -121,7 +182,7 @@ Punya bot Telegram juga? Keduanya berjalan sendiri-sendiri; matikan salah satu b
 ```bash
 monev rekap            # sejak mulai magang
 monev rekap --minggu   # Senin minggu ini sampai hari ini
-monev rekap --bulan    # tanggal 1 sampai hari ini
+monev rekap --bulan    # periode berjalan (bulan sejak mulai magang) sampai hari ini
 ```
 
 Isinya: hari kerja, hadir, izin, absen, kehadiran ditolak mentor (dihitung absen), persetujuan mentor, sisa izin
@@ -136,8 +197,11 @@ tidak dihitung.
 | `monev rekap [--minggu \| --bulan] [--dari --sampai] [--json]` | rekap kehadiran dan status peringatan |
 | `monev draft [--hari-pertama]` | template laporan untuk ditulis sendiri |
 | `monev validate FILE [--json] [--bebas-tanggal]` | cek draft sebelum dikirim |
+| `monev eval [FOLDER] [--lewati D] [--json]` | skor draft latihan `<nama>-YYYY-MM-DD.json` terhadap laporan yang sudah terkirim, tanpa mengirim apa pun. Skor dihitung dari kegiatan dan pembelajaran |
 | `monev kirim FILE [--uji]` | isi dan kirim lewat extension (`--uji`: isi saja, tidak dikirim) |
 | `monev kirim --ping` | cek sambungan CLI ↔ extension ↔ Monev |
+| `monev jadwal pasang\|status\|lepas` | atur draft otomatis di laptop |
+| `monev jadwal jalan [--kering]` | jalankan proses terjadwal sekarang (`--kering`: tampilkan keputusan saja) |
 | `monev extension install` | daftarkan jembatan Native Messaging (sekali) |
 | `monev extension coba [pagi\|fokus\|ingat]` | tampilkan notifikasi extension sekarang |
 | `monev hermes install\|uninstall [--profile …] [--symlink]` | pasang/lepas skill `/monev` di Hermes |
@@ -146,7 +210,8 @@ tidak dihitung.
 | `monev login` / `monev logout` | login ulang / hapus sesi CLI |
 | `monev doctor [--tanpa-sesi] [--json]` | diagnosa config, Chrome, extension, sesi, umur refresh token, dan jalur sumber bahan A–D |
 | `monev sumber cari [--akar DIR]` | temukan folder work records (dikenali dari isinya) |
-| `monev sumber baca [--tanggal D] [--json]` | bahan work records satu tanggal: aktivitas, keputusan/jebakan, judul, status |
+| `monev sumber baca [--tanggal D] [--json]` | bahan work records satu tanggal: aktivitas, keputusan/jebakan, judul, klien, status, carry-over, dan kerja di luar jam yang belum dilaporkan |
+| `monev sumber siap [--tanggal D] [--logtime N] [--json]` | kesiapan bahan: `siap`, `tipis`, atau `kosong`, plus peringatan bila repo tertinggal atau belum di-commit |
 | `monev bukti [--tanggal D] [--json]` | aktivitas Git milikmu hari itu (commit, PR/MR, review), sudah dibersihkan |
 | `monev config [--edit] [--json]` | lihat atau ubah config |
 
@@ -160,7 +225,18 @@ bot dan skrip).
 - kurang dari 100 atau lebih dari 5000 karakter per kolom;
 - memuat alamat IP, URL, nomor tiket/MR, hash commit, path berkas, email, token, atau nomor CVE;
 - menyebut nama di `jangan_disebut` (nama mentor otomatis masuk);
-- terlalu mirip dengan laporan yang sudah terkirim.
+- menyebut nama proyek atau klien dari sumber, karena nama itu harus ditulis umum seperti "aplikasi klien";
+- memakai tag proyek yang ada di `lewati_proyek`.
+
+Nama teknologi dan standar seperti Grafana, Wazuh, GitLab, dan ISO 27001 tetap boleh disebut.
+
+Draft tetap bisa dikirim, tetapi mendapat peringatan bila:
+
+- terlalu mirip dengan laporan terdahulu;
+- satu butir aktivitas lebih dari 250 karakter;
+- pembuka pembelajaran sama dengan laporan terakhir;
+- menyebut batasan alat bantu kerja;
+- tampak memuat detail temuan keamanan, seperti port yang terbuka atau jumlah dan tingkat temuan.
 
 Aturan lengkapnya ada di [`monev/laporan/aturan.toml`](../../monev/laporan/aturan.toml). Gaya tulisan dan contoh
 laporan yang lolos: [`plugin/skills/monev/references/writing-guide.md`](../../plugin/skills/monev/references/writing-guide.md).
@@ -175,10 +251,14 @@ seperti [`config.example.toml`](../../config.example.toml).
 | posisi dan perusahaan | profil Monev saat login pertama |
 | `jangan_disebut` | nama mentor otomatis; tambahkan nama klien/proyek yang tidak boleh muncul |
 | `rutinitas` | kosong; isi kegiatan rutin bila ingin disarankan saat menyusun draft (selalu dikonfirmasi) |
+| `[laporan] lewati_proyek` | kosong; proyek yang tidak masuk laporan, misalnya proyek pribadi |
+| `[laporan] nama_boleh` | kosong; nama yang boleh disebut walau tertangkap saringan nama |
+| `[laporan] jam_selesai` | `17:00`; kerja sesudah jam ini dianggap di luar jam kerja |
 | `[sumber.workrecords] dir` | kosong (mode tanya-jawab); diisi sendiri, atau dari env `MONEV_WORK_RECORDS` saat config dibuat |
 | `[sumber.git] penyedia`, `gitlab_host` | kosong; `["github"]` dan/atau `["gitlab"]` ([cara](pasang.md#jalur-b-git)) |
 | `[sumber.mcp] awalan_tool` | kosong; diisi sendiri bila memakai MCP kantor ([cara](pasang.md#sumber-bahan-pilih-jalur)) |
 | `[profil.nilai]` | kosong; `semboyan` + `poin = ["Nama nilai: cara menerapkannya", …]` untuk bagian fokus di kartu hari ini (bot, 08.00) dan notifikasi fokus (extension, 09.00), satu poin per hari. Agent bisa mencarikan dari situs resmi perusahaanmu lalu mengisinya setelah kamu setujui: `/monev nilai` |
 
-Lihat dengan `monev config`, ubah dengan `monev config --edit`. Lokasi lain: env `MONEV_CONFIG`.
+Config lama tanpa bagian `[laporan]` tetap terbaca dengan nilai bawaan. Lihat dengan `monev config`, ubah dengan
+`monev config --edit`. Lokasi lain: env `MONEV_CONFIG`.
 Email dan nomor telepon tidak pernah disimpan.

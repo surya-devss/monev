@@ -1,7 +1,7 @@
 # Bot Telegram `monev bot`
 
-Bot pribadi yang mengingatkan kalau laporan Monev hari ini belum diisi, memberi tahu kalau mentor minta revisi
-atau menolak kehadiran, dan mengirim rekap kehadiran. Bot ini **tidak memakai AI** dan **hanya membaca** Monev.
+Bot pribadi yang mengingatkan kalau laporan Monev hari ini belum diisi, memberi tahu kalau mentor minta revisi,
+menyetujui laporan, atau menolak kehadiran, dan mengirim rekap kehadiran. Bot ini **tidak memakai AI** dan **hanya membaca** Monev.
 Menulis dan mengirim laporan tetap dilakukan dari laptop.
 
 Satu bot untuk satu orang. Bot hanya menjawab chat milik pemiliknya (`TELEGRAM_CHAT_ID`); pesan dari orang lain
@@ -29,16 +29,33 @@ perlu, konfirmasi terkirim). Pesan yang sudah tidak relevan diperbarui di tempat
 | 08.00 | "Selamat pagi, … Hari ini libur." (satu pesan, tanpa pengingat) | hari libur |
 | 08.00 | Sesi Monev di server hampir habis | sisa ≤ 3 hari |
 | 15.00, 16.30, 20.00 | Pengingat, makin tegas; tombol **Ingatkan 1 jam lagi** dan **Sudah kirim, cek**. Setelah laporan terkirim, pengingat dicoret dan tombolnya hilang | hari kerja, laporan belum diisi |
-| 16.00 | Rekap minggu (Jumat) dan rekap bulan (hari kerja terakhir bulan) | hari kerja |
+| 16.00 | Rekap minggu (Jumat) dan rekap periode (hari kerja terakhir periode) | hari kerja |
+
+**Periode** = satu bulan sejak tanggal mulai magang, sama dengan hitungan gaji dan absen MagangHub. Mulai 16 Nov →
+periode 1 = 16 Nov–15 Des, periode 2 = 16 Des–15 Jan. Total absen dan sisa izin dibayar di rekap dihitung per periode,
+absen berturut dihitung lintas periode. `/rekap_bulan` dan tombol "Rekap periode" menampilkan periode berjalan.
 
 Setiap jadwal, ditambah pengecekan pada 12.00, 18.00, dan 22.00, juga mendeteksi perubahan:
 
 - laporan baru saja terkirim (beserta status lokasi dan persetujuan mentor),
 - mentor minta revisi (beserta catatannya),
-- kehadiran ditolak mentor (dihitung absen).
+- laporan disetujui mentor (beberapa tanggal digabung jadi satu pesan),
+- kehadiran ditolak mentor (dihitung absen),
+- masa magang tinggal 30 hari, 7 hari, hari terakhir, dan saat Monev menandai magang tidak aktif,
+- tampilan situs Monev diperbarui (nama file utama frontend berganti). Artinya form bisa ikut berubah, jadi kiriman
+  berikutnya dicoba dulu dengan `monev kirim --uji`.
 
-Bila Monev tidak bisa dibaca, bot mengirim **satu** pesan gangguan per hari (tombol **Coba sekarang** dan **Cara
-memperbarui**); percobaan berikutnya memperbarui pesan itu, dan setelah pulih pesannya dicoret.
+Persetujuan yang terjadi setelah pengecekan 22.00 dikabari pukul 08.00 besoknya, tepat setelah kartu hari ini.
+Saat bot baru diperbarui, persetujuan dan versi situs yang sudah ada hanya dicatat dan tidak dikabari.
+
+Bila Monev tidak bisa dibaca, bot mengirim **satu** pesan gangguan per hari; percobaan berikutnya memperbarui pesan
+itu, dan setelah pulih pesannya dicoret. Penyebabnya dibedakan:
+
+| Penyebab | Artinya | Tombol |
+|---|---|---|
+| Sesi habis | dialihkan ke halaman login, atau API menjawab 401/403 | **Coba sekarang**, **Cara memperbarui** |
+| Monev tidak bisa dihubungi | halaman tidak siap dalam 25 detik, API 5xx, atau jaringan | **Coba sekarang** |
+| Bentuk data berubah | field yang dipakai bot hilang dari respons Monev, atau API 404. Bot berhenti supaya libur atau status tidak terbaca keliru | **Coba sekarang** |
 
 Hari libur nasional, libur daerah lokasi magang, dan hari libur posisi (`off_days`, biasanya Sabtu–Minggu) dibaca
 dari Monev. Kalau bot mati lebih dari 30 menit melewati suatu jadwal, jadwal itu dilewati (tidak dikirim terlambat).
@@ -49,7 +66,7 @@ Jadwal yang sudah jalan dan id pesan hari itu dicatat, jadi bot yang restart tid
 Tombol **Menu** Telegram (atau ketik `/`) berisi `/menu`, `/status`, `/rekap`, `/help`. `/rekap_bulan` dan `/ping`
 tetap bisa diketik.
 
-`/menu` mengirim satu pesan bertombol: Status hari ini, Rekap minggu, Rekap bulan, Jadwal pengingat, Bantuan.
+`/menu` mengirim satu pesan bertombol: Status hari ini, Rekap minggu, Rekap periode, Jadwal pengingat, Bantuan.
 Setiap tombol **mengganti isi pesan menu itu** (ada tombol "‹ Menu" untuk kembali), jadi chat tidak bertambah.
 Tombol di kartu hari ini membuka pesan baru supaya kartunya tetap utuh.
 
@@ -174,7 +191,9 @@ docker logs -f monev-bot     # "monev bot jalan · chat 848… · jadwal 08:00, 
 
 ## Sesi Monev di server habis
 
-Sesi berlaku ±30 hari dan bot mengingatkan mulai 3 hari sebelum habis. Untuk memperpanjang:
+Sesi berlaku ±30 hari dan masa berlakunya bergeser setiap kali dipakai, jadi bot yang membaca Monev setiap hari
+biasanya tidak kehabisan sesi ([situs-monev](../teknis/situs-monev.md#login--sesi)). Tanggal habisnya ada di `/status`,
+dan bot mengingatkan mulai 3 hari sebelum habis. Untuk memperpanjang:
 
 1. Di laptop: `monev login` (jendela Chrome terbuka, login sendiri). Pastikan muncul "berlaku s.d. …".
 2. Ulangi [langkah B.1–B.2](#b-di-server-sendiri-dengan-docker) untuk menyalin profil baru ke server.
@@ -185,8 +204,10 @@ Sesi berlaku ±30 hari dan bot mengingatkan mulai 3 hari sebelum habis. Untuk me
 | Gejala | Penyebab yang paling mungkin | Yang dilakukan |
 |---|---|---|
 | Bot tidak menjawab sama sekali | container mati, atau ada bot lain memakai token yang sama | `docker ps`, `docker logs --tail 50 monev-bot`; matikan `monev bot` di laptop |
-| "Bot belum bisa membaca Monev. Penyebabnya sesi Monev habis…" | sesi di server kedaluwarsa | [Sesi Monev di server habis](#sesi-monev-di-server-habis) |
-| "Bot belum bisa membaca Monev" dengan penyebab lain | Monev sedang lambat atau down | tekan **Coba sekarang** nanti, atau tunggu jadwal berikutnya |
+| "Bot belum bisa membaca Monev. Sesi Monev di server habis…" | sesi di server kedaluwarsa | [Sesi Monev di server habis](#sesi-monev-di-server-habis) |
+| "… Situs Monev tidak bisa dihubungi atau terlalu lambat…" | Monev sedang lambat atau down | tekan **Coba sekarang** nanti, atau tunggu jadwal berikutnya |
+| "… Bentuk data Monev berubah (…)…" | Monev mengganti API, kode `monev` perlu diperbarui | isi laporan dari laptop seperti biasa, lalu perbaiki `WAJIB` di `monev/portal/api.py` dan pembacanya |
+| "Tampilan situs Monev baru saja diperbarui." | Monev di-deploy ulang | sebelum kirim berikutnya: `monev kirim --uji` |
 | Tombol tidak bereaksi, tidak ada ⏳ | bot mati atau polling terputus | `docker logs --tail 20 monev-bot`; `/ping` |
 | `/status` lama sekali | Chrome di server kekurangan memori | `docker stats monev-bot`; pastikan `shm_size` 256m dan limit 600M tetap ada |
 | Menu perintah tidak muncul | `setMyCommands` gagal saat start | restart bot, atau `monev bot --coba menu` sekali |

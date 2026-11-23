@@ -8,10 +8,38 @@ from datetime import date
 from ._umum import EXIT_FAIL, EXIT_OK, _config_auto, _today
 
 
+def _luar_jam(cfg, d: str) -> list[dict]:
+    """Kerja di luar jam sebelum tanggal `d` yang belum tertulis di laporan mana pun."""
+    from ..config import data_dir
+    from ..laporan.nilai import muat_arsip, sudah_dilaporkan
+    from ..sumber.catatan import kerja_luar_jam
+
+    arsip = muat_arsip(data_dir() / "arsip")
+    calon = kerja_luar_jam(cfg.workrecords_dir, d, set(arsip), cfg.jam_selesai, cfg.lewati_folder + cfg.lewati_proyek)
+    return [c for c in calon
+            if not sudah_dilaporkan(c["kegiatan"], [a for t, a in arsip.items() if c["tanggal"] <= t < d])]
+
+
 def cmd_sumber(args) -> int:
     from pathlib import Path
 
     from ..sumber.catatan import baca, cari
+    from ..sumber.kesiapan import periksa
+
+    if args.aksi == "siap":
+        cfg = _config_auto()
+        d = args.tanggal or _today()
+        folder = cfg.workrecords_dir
+        pekerjaan = baca(folder, d, cfg.lewati_folder + cfg.lewati_proyek) if folder else []
+        hasil = periksa(pekerjaan, folder, args.logtime)
+        if args.json:
+            print(json.dumps({"tanggal": d, **hasil}, indent=2, ensure_ascii=False))
+            return EXIT_OK
+        logtime = "tidak dicek" if hasil["logtime"] is None else f"{hasil['logtime']} entri"
+        print(f"Bahan {d}: {hasil['status']} (work records {hasil['aktivitas']} baris, logtime {logtime})")
+        for p in hasil["peringatan"]:
+            print(f"! {p}")
+        return EXIT_OK
 
     if args.aksi == "baca":
         cfg = _config_auto()
@@ -19,10 +47,11 @@ def cmd_sumber(args) -> int:
             print("✗ Folder work records belum diatur: `monev sumber cari`, lalu isi [sumber.workrecords] dir.")
             return EXIT_FAIL
         d = args.tanggal or _today()
-        hasil = baca(cfg.workrecords_dir, d, cfg.lewati_folder)
+        hasil = baca(cfg.workrecords_dir, d, cfg.lewati_folder + cfg.lewati_proyek)
+        luar_jam = _luar_jam(cfg, d)
         if args.json:
-            print(json.dumps({"tanggal": d, "folder": str(cfg.workrecords_dir), "pekerjaan": hasil},
-                             indent=2, ensure_ascii=False))
+            print(json.dumps({"tanggal": d, "folder": str(cfg.workrecords_dir), "pekerjaan": hasil,
+                              "luar_jam": luar_jam}, indent=2, ensure_ascii=False))
             return EXIT_OK
         print(f"Work records {d} ({cfg.workrecords_dir}): {len(hasil)} pekerjaan")
         for p in hasil:
@@ -32,6 +61,13 @@ def cmd_sumber(args) -> int:
                       + (f"  ! {a['blocker']}" if a["blocker"] and a["blocker"] not in ("-", "Tidak ada") else ""))
             for b in p["pembelajaran"]:
                 print(f"    {b['jenis']}: {b['teks']}")
+            for c in p["carry_over"]:
+                asal = ", ".join(a["tanggal"] for a in c["asal"])
+                print(f"    carry-over dari {asal}, bukan kerja hari ini: {c['kegiatan']}")
+        if luar_jam:
+            print("\nKerja di luar jam yang belum tertulis di laporan:")
+            for x in luar_jam:
+                print(f"  - {x['tanggal']} {x['mulai']}-{x['selesai']} [{x['proyek']}] {x['kegiatan']}")
         return EXIT_OK
 
     akar = [Path(a) for a in args.akar] if args.akar else None

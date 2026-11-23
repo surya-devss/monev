@@ -1,11 +1,12 @@
 """CLI `monev`: parser dan pembagi perintah. Isi tiap perintah ada di modul per kelompok:
 
 - `akun.py`     init, config, login, logout, doctor
-- `laporan.py`  status, rekap, draft, validate
+- `laporan.py`  status, rekap, draft, validate, eval
 - `kirim.py`    kirim, extension
 - `bot.py`      bot
 - `agen.py`     hermes
 - `sumber.py`   sumber cari, bukti
+- `jadwal.py`   jadwal pasang, status, lepas, jalan
 - `_umum.py`    kode keluar, tanya-jawab terminal, config otomatis, sesi Chrome A
 """
 
@@ -18,18 +19,19 @@ from .. import __version__
 from .agen import cmd_hermes
 from .akun import cmd_config, cmd_doctor, cmd_init, cmd_login, cmd_logout
 from .bot import cmd_bot
+from .jadwal import cmd_jadwal
 from .kirim import cmd_extension, cmd_kirim
-from .laporan import cmd_draft, cmd_rekap, cmd_status, cmd_validate
+from .laporan import cmd_draft, cmd_eval, cmd_rekap, cmd_status, cmd_validate
 from .sumber import cmd_bukti, cmd_sumber
 
 PERINTAH = {"init", "login", "logout", "doctor", "status", "rekap", "kirim", "extension", "hermes", "bot",
-            "config", "draft", "validate", "sumber", "bukti"}
+            "config", "draft", "validate", "eval", "sumber", "bukti", "jadwal"}
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="monev", description="Asisten laporan harian Monev MagangHub")
     ap.add_argument("--version", action="version", version=f"monev {__version__}")
-    sub = ap.add_subparsers(dest="cmd", metavar="{status,rekap,kirim,bot,extension,hermes,doctor,login,logout,config,draft,validate,init,sumber,bukti}",
+    sub = ap.add_subparsers(dest="cmd", metavar="{status,rekap,kirim,jadwal,bot,extension,hermes,doctor,login,logout,config,draft,validate,eval,init,sumber,bukti}",
                             help="tanpa perintah = status")
 
     p = sub.add_parser("init", help="buat config otomatis (opsional; status/doctor membuatnya sendiri)")
@@ -56,9 +58,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--json", action="store_true", help="keluaran JSON (untuk agent / /monev setup)")
     p.set_defaults(func=cmd_doctor)
 
-    p = sub.add_parser("sumber", help="work records: cari foldernya (dari isi) / baca bahan satu tanggal")
-    p.add_argument("aksi", choices=["cari", "baca"])
-    p.add_argument("--tanggal", help="untuk `baca`: YYYY-MM-DD (default hari ini)")
+    p = sub.add_parser("sumber", help="work records: cari foldernya / baca bahan satu tanggal / cek kesiapan bahan")
+    p.add_argument("aksi", choices=["cari", "baca", "siap"])
+    p.add_argument("--tanggal", help="untuk `baca` dan `siap`: YYYY-MM-DD (default hari ini)")
+    p.add_argument("--logtime", type=int, help="untuk `siap`: jumlah entri logtime tanggal itu, bila logtime dipakai")
     p.add_argument("--akar", action="append", help="folder awal pencarian (boleh berulang; bawaan: home)")
     p.add_argument("--kedalaman", type=int, default=5, help="kedalaman folder maksimal (bawaan 5)")
     p.add_argument("--json", action="store_true")
@@ -78,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("rekap", help="rekap kehadiran: hadir/izin/absen, persetujuan mentor, peringatan (read-only)")
     g = p.add_mutually_exclusive_group()
     g.add_argument("--minggu", action="store_true", help="Senin minggu ini s.d. hari ini")
-    g.add_argument("--bulan", action="store_true", help="tanggal 1 bulan ini s.d. hari ini")
+    g.add_argument("--bulan", action="store_true", help="periode berjalan (bulan sejak tanggal mulai magang) s.d. hari ini")
     p.add_argument("--dari", help="YYYY-MM-DD (timpa awal jendela)")
     p.add_argument("--sampai", help="YYYY-MM-DD (timpa akhir jendela)")
     p.add_argument("--json", action="store_true")
@@ -92,6 +95,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--ping", action="store_true", help="cek koneksi CLI ↔ extension ↔ Monev")
     p.add_argument("--timeout", type=int, default=120, help="detik menunggu extension selesai (default 120)")
     p.set_defaults(func=cmd_kirim)
+
+    p = sub.add_parser("jadwal", help="draft otomatis di laptop: pasang, status, lepas")
+    p.add_argument("aksi", choices=["pasang", "status", "lepas", "jalan"])
+    p.add_argument("--kering", action="store_true", help="untuk `jalan`: tampilkan keputusan tanpa menyusun atau mengirim pesan")
+    p.set_defaults(func=cmd_jadwal)
 
     p = sub.add_parser("extension", help="pasang jembatan CLI ↔ extension Chrome")
     p.add_argument("aksi", nargs="?", choices=["install", "info", "coba"], default="info")
@@ -130,6 +138,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--json", action="store_true")
     p.add_argument("--bebas-tanggal", action="store_true", help="jangan wajibkan tanggal = hari ini")
     p.set_defaults(func=cmd_validate)
+
+    p = sub.add_parser("eval", help="skor draft latihan terhadap laporan yang sudah terkirim (read-only)")
+    p.add_argument("folder", nargs="?", help="folder draft `<nama>-YYYY-MM-DD.json` (default folder draft monev)")
+    p.add_argument("--lewati", action="append", metavar="YYYY-MM-DD", help="tanggal yang tidak dinilai (boleh berulang)")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_eval)
 
     argv = sys.argv[1:] if argv is None else argv
     if not argv or argv[0] not in PERINTAH | {"-h", "--help", "--version"}:

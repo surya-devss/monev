@@ -15,6 +15,11 @@ poin = []                      # contoh: ["Integritas: jujur soal progres dan ha
 # [pesan.ingat.pertama]        # opsional: ganti teks notifikasi extension; kunci dan teks bawaan ada di
 # judul = "..."                # monev/teks/bawaan.toml (yang tidak ditulis di sini tetap memakai bawaan)
 
+[laporan]                      # saringan isi laporan; nama proyek dan klien diambil otomatis dari sumber
+lewati_proyek = []             # proyek yang tidak masuk laporan, mis. proyek pribadi
+nama_boleh = []                # nama yang boleh disebut walau tertangkap saringan
+jam_selesai = "17:00"          # kerja sesudah jam ini dianggap di luar jam kerja
+
 [sumber]                       # bahan draft /monev, semuanya dibaca saja (docs/teknis/kontrak-sumber.md)
 mode = "auto"                  # auto | workrecords | checklist
 
@@ -32,9 +37,13 @@ gitlab_host = "gitlab.com"     # GitLab kantor/self-hosted: ganti dengan host-ny
 [bot]                          # jadwal bot Telegram (WIB, hari kerja); dibaca config di server tempat bot jalan
 kartu = "08:00"                # kartu hari ini: sapaan, status laporan, fokus
 pengingat = ["15:00", "16:30", "20:00"]   # hanya bila laporan belum diisi; yang terakhir paling tegas
-rekap = "16:00"                # Jumat: rekap minggu; hari kerja terakhir bulan: rekap bulan
-pantau = ["12:00", "18:00", "22:00"]      # cek perubahan (terkirim, revisi, ditolak) tanpa pengingat
+rekap = "16:00"                # Jumat: rekap minggu; hari kerja terakhir periode: rekap periode
+pantau = ["12:00", "18:00", "22:00"]      # cek perubahan (terkirim, revisi, disetujui, ditolak) tanpa pengingat
 tunda_menit = 60               # tombol "Ingatkan lagi" di pengingat
+
+[jadwal]                       # draft otomatis di laptop (WIB), aktif setelah `monev jadwal pasang`
+jam = ["16:00", "17:00", "18:00", "19:00"]   # jam berikutnya mencoba lagi bila bahan belum ada
+alat_mcp = []                  # nama lengkap tool MCP yang hanya membaca, boleh dipakai proses terjadwal
 
 [browser]
 channel = "chrome"

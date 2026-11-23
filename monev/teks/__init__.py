@@ -12,7 +12,7 @@ from pathlib import Path
 
 BAWAAN = Path(__file__).with_name("bawaan.toml")
 PLACEHOLDER = {"nama", "hari", "tanggal", "batas", "sisa", "alasan", "jam", "mentor", "rincian", "absen",
-               "batas_absen", "kapan", "berikut", "lama", "menit"}
+               "batas_absen", "kapan", "berikut", "lama", "menit", "jumlah", "total", "ke"}
 
 
 def bawaan() -> dict:

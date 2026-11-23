@@ -33,16 +33,38 @@ class SesiMati(RuntimeError):
     pass
 
 
+class MonevTidakSiap(RuntimeError):
+    pass
+
+
+def sebab(ex: Exception) -> str:
+    """Golongan gangguan untuk teks `[bot.gangguan.sebab]`: sesi | monev | format | lain."""
+    from ..portal.api import ApiError, FormatBerubah
+
+    if isinstance(ex, SesiMati) or (isinstance(ex, ApiError) and ex.status in (401, 403)):
+        return "sesi"
+    if isinstance(ex, FormatBerubah) or (isinstance(ex, ApiError) and ex.status == 404):
+        return "format"
+    if isinstance(ex, (MonevTidakSiap, ApiError, OSError)) or "Timeout" in type(ex).__name__:
+        return "monev"
+    return "lain"
+
+
 def ambil(cfg, rekap: tuple[str, ...] = ()) -> dict:
     """Satu sesi Chrome headless: status + tanggal habis sesi + rekap yang diminta. Chrome selalu ditutup."""
     from ..portal.api import collect_status
-    from ..portal.browser import SESSION_OK, open_browser, open_dashboard, refresh_cookie_expiry
+    from ..portal.browser import (SESSION_LOGIN, SESSION_OK, open_browser, open_dashboard, refresh_cookie_expiry,
+                                  versi_web)
     from ..portal.rekap import collect_rekap
 
     with open_browser(cfg, headless=True) as s:
-        if open_dashboard(s) != SESSION_OK:
+        hasil = open_dashboard(s)
+        if hasil == SESSION_LOGIN:
             raise SesiMati("sesi Monev habis, perlu login ulang")
-        out = {"status": collect_status(s), "sesi_sampai": refresh_cookie_expiry(s), "nilai": cfg.nilai_dict()}
+        if hasil != SESSION_OK:
+            raise MonevTidakSiap("halaman Monev tidak siap dalam 25 detik")
+        out = {"status": collect_status(s), "sesi_sampai": refresh_cookie_expiry(s), "nilai": cfg.nilai_dict(),
+               "versi_web": versi_web(s)}
         out["periode"] = collect_rekap(s, "periode")
         for j in rekap:
             out[j] = collect_rekap(s, j)
@@ -132,19 +154,20 @@ class Bot:
         tulis_state(self.state)
         return k.sudah_isi
 
-    def gangguan(self, sekarang: datetime, alasan: str) -> None:
+    def gangguan(self, sekarang: datetime, ex: Exception) -> None:
         """Satu pesan gangguan per hari; percobaan berikutnya memperbarui pesan yang sama."""
         h = self.hari(sekarang)
         g = h.get("gangguan")
         jam = f"{sekarang:%H:%M}"
         berikut = jadwal_berikutnya(self.jadwal_list, sekarang)
+        jenis, alasan = sebab(ex), str(ex)
         try:
             if g and not g.get("pulih"):
                 if jam not in g["jam"]:
                     g["jam"].append(jam)
-                self.ubah(g["id"], P.gangguan(self.tx, alasan, g["jam"], berikut))
+                self.ubah(g["id"], P.gangguan(self.tx, alasan, g["jam"], berikut, jenis))
             else:
-                h["gangguan"] = {"id": self.kirim(P.gangguan(self.tx, alasan, [jam], berikut)), "jam": [jam]}
+                h["gangguan"] = {"id": self.kirim(P.gangguan(self.tx, alasan, [jam], berikut, jenis)), "jam": [jam]}
         except RuntimeError as ex:
             self.log(f"  gagal kirim pesan gangguan: {ex}")
         tulis_state(self.state)
@@ -154,7 +177,7 @@ class Bot:
             return self.jalankan(jenis, sekarang)
         except Exception as ex:  # noqa: BLE001
             self.log(f"  gagal: {ex}")
-            self.gangguan(sekarang, str(ex))
+            self.gangguan(sekarang, ex)
             return None
 
     # ------------------------------------------------------------ tampilan menu
@@ -170,7 +193,8 @@ class Bot:
         try:
             data = self.baca(DATA.get(nama, ()), segarkan)
         except Exception as ex:  # noqa: BLE001
-            return P.Pesan(f"<b>{self.tx('bot.gangguan.judul')}</b>\n{P.e(ex)}", tombol=[[(self.tx.mentah("bot.tombol.kembali"), "v:menu")]])
+            return P.Pesan(f"<b>{self.tx('bot.gangguan.judul')}</b>\n{self.tx(f'bot.gangguan.sebab.{sebab(ex)}', alasan=str(ex))}",
+                           tombol=[[(self.tx.mentah("bot.tombol.kembali"), "v:menu")]])
         if nama == "minggu":
             p = P.rekap_minggu(self.tx, data["minggu"])
         elif nama == "bulan":

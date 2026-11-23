@@ -108,6 +108,18 @@ def open_dashboard(s: Session, timeout_s: float = 25) -> str:
     return wait_session(s.page, timeout_s)
 
 
+VERSI_JS = """() => { const s = document.querySelector('script[type=module][src*="/_nuxt/"]');
+  return s ? s.getAttribute('src') : null; }"""
+
+
+def versi_web(s: Session) -> str | None:
+    """Nama file utama frontend Monev (mis. `/_nuxt/BOw8CLsC.js`). Berganti setiap situs di-deploy ulang (uji #57)."""
+    try:
+        return s.page.evaluate(VERSI_JS)
+    except Exception:  # noqa: BLE001 — hanya penanda, tidak boleh menggagalkan pembacaan status
+        return None
+
+
 def refresh_cookie_expiry(s: Session) -> datetime | None:
     """Tanggal kedaluwarsa refresh token (hanya tanggalnya, nilai cookie tidak dibaca)."""
     for c in s.ctx.cookies(f"https://{API_HOST}"):

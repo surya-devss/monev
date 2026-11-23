@@ -28,8 +28,9 @@ def rekap(harian=None, ditolak=None, terakhir=False):
     return {"dari": "2026-11-16", "sampai": "2026-11-20", "hari_kerja": len(harian), "terhitung": len(harian),
             "hadir": 1, "izin": 1, "absen": 0, "ditolak": 0, "belum": 0, "penuh": False,
             "persetujuan": {"menunggu": 1, "disetujui": 1, "ditolak": 0}, "harian": harian,
-            "ditolak_tanggal": ditolak or [], "hari_kerja_terakhir_bulan": terakhir,
-            "periode": {"izin_dibayar_sisa": 2, "absen_total": 0, "absen_berturut": 0, "status": "aman"}}
+            "ditolak_tanggal": ditolak or [], "hari_kerja_terakhir_periode": terakhir,
+            "periode": {"izin": 1, "izin_dibayar_sisa": 2, "absen_total": 0, "absen_berturut": 0, "status": "aman",
+                        "ke": 1, "awal": "2026-11-16", "akhir": "2026-12-15"}}
 
 
 NILAI = {"semboyan": "Semboyan Contoh", "poin": [["Satu", "penerapan satu."], ["Dua", "penerapan dua."],
@@ -105,13 +106,81 @@ class TestPutuskan(unittest.TestCase):
         self.assertIn("&lt;hasil&gt;", k.kirim[0][1].teks)   # isi dari Monev di-escape
         self.assertEqual(putus("pantau", status, k.baru, periode=rekap(ditolak=["2026-11-18"])).kirim, [])
 
-    def test_rekap_jumat_dan_akhir_bulan(self):
+    def test_disetujui_digabung_dan_sekali(self):
+        per = {**rekap(), "disetujui_tanggal": ["2026-11-16", "2026-11-17", "2026-11-18"],
+               "persetujuan": {"menunggu": 1, "disetujui": 3, "ditolak": 0}}
+        k = putus("pantau", st(), {"disetujui": ["2026-11-16"]}, jam(22, 0), periode=per)
+        self.assertEqual(len(k.kirim), 1)
+        self.assertEqual(k.kirim[0][1].teks, "<b>Laporan 17 dan 18 Nov disetujui mentor.</b>\n"
+                                             "Total disetujui 3 dari 4 laporan terkirim.")
+        self.assertEqual(putus("pantau", st(), k.baru, jam(8, 0, d=21), periode=per).kirim, [])
+
+    def test_disetujui_tidak_dikabari_saat_state_belum_mencatat(self):
+        per = {**rekap(), "disetujui_tanggal": ["2026-11-16", "2026-11-17"]}
+        k = putus("pantau", st(), {"tanggal": "2026-11-19", "revisi": [], "ditolak": []}, periode=per)
+        self.assertEqual(k.kirim, [])
+        self.assertEqual(k.baru["disetujui"], ["2026-11-16", "2026-11-17"])
+
+    def test_disetujui_menyusul_setelah_kartu_pagi(self):
+        per = {**rekap(), "disetujui_tanggal": ["2026-11-19"]}
+        k = putus("kartu", st(), {"disetujui": []}, jam(8, 0), periode=per)
+        self.assertEqual([t for t, _ in k.kirim], ["kartu", "info"])
+        self.assertIn("Laporan 19 Nov disetujui mentor.", k.kirim[1][1].teks)
+
+    def test_kalimat_absen_dan_izin(self):
+        self.assertEqual(pesan.izin_teks(0), "0 dari 3 yang dibayar")
+        self.assertEqual(pesan.izin_teks(4), "4, 1 tidak dibayar")
+        m = pesan.rekap_minggu(TX, rekap()).teks
+        self.assertIn("Periode 1: absen 0 (peringatan di 7), izin 1 dari 3 yang dibayar.", m)
+        b = pesan.rekap_bulan(TX, rekap()).teks
+        self.assertIn("<b>Izin</b>  1 dari 3 yang dibayar", b)
+        self.assertIn("<b>Absen</b>  0 (peringatan di 7)", b)
+        self.assertIn("<b>Berturut</b>  absen 0 (peringatan di 3)", b)
+
+    def test_daftar_tanggal(self):
+        self.assertEqual(pesan.daftar_tanggal(["2026-11-19"]), "19 Nov")
+        self.assertEqual(pesan.daftar_tanggal(["2026-11-19", "2026-11-17", "2026-11-18"]), "17, 18, dan 19 Nov")
+        self.assertEqual(pesan.daftar_tanggal(["2026-11-30", "2026-12-01"]), "30 Nov dan 1 Des")
+
+    def test_rekap_jumat_dan_akhir_periode(self):
         k = putus("rekap", st(sudah=True), periode=rekap(terakhir=True), minggu=rekap(), bulan=rekap())
         self.assertEqual(len(k.kirim), 2)
         self.assertIn("Minggu ini hadir 1 dari 2 hari", k.kirim[0][1].teks)
-        self.assertIn("November 2026, hadir 1 dari 2 hari", k.kirim[1][1].teks)
+        self.assertIn("<b>Periode 1, hadir 1 dari 2 hari.</b>\n16 Nov – 15 Des 2026", k.kirim[1][1].teks)
         k = putus("rekap", st(tanggal="2026-11-19", sudah=True), waktu=jam(16, 0, d=19), minggu=rekap(), bulan=rekap())
         self.assertEqual(k.kirim, [])
+
+    def test_situs_diperbarui_dikabari_sekali(self):
+        k = putus("pantau", st(), {}, versi_web="/_nuxt/A.js")              # pertama kali: hanya dicatat
+        self.assertEqual(k.kirim, [])
+        k = putus("pantau", st(), k.baru, versi_web="/_nuxt/B.js")
+        self.assertEqual(len(k.kirim), 1)
+        self.assertIn("Tampilan situs Monev baru saja diperbarui.", k.kirim[0][1].teks)
+        self.assertIn("<code>monev kirim --uji</code>", k.kirim[0][1].teks)
+        self.assertEqual(putus("pantau", st(), k.baru, versi_web="/_nuxt/B.js").kirim, [])
+        self.assertEqual(putus("pantau", st(), k.baru).baru["versi_web"], "/_nuxt/B.js")   # gagal baca: tetap ingat
+
+    def test_masa_magang_sekali_per_ambang(self):
+        akhir = {"mulai": "2026-11-16", "selesai": "2026-12-20"}
+        k = putus("kartu", {**st(), "periode": akhir}, {"masa": []}, jam(8, 0))   # sisa 30 hari
+        self.assertIn("Masa magang selesai dalam 30 hari (20 Des 2026).", k.kirim[-1][1].teks)
+        self.assertEqual(putus("pantau", {**st(), "periode": akhir}, k.baru, jam(12, 0)).kirim, [])
+        # bot mati lama, ternyata sisa 5 hari: cukup kabar H-7, bukan H-30 dan H-7 sekaligus
+        k = putus("kartu", {**st(tanggal="2026-12-15"), "periode": akhir}, {}, jam(8, 0, d=15))
+        masa = [p.teks for t, p in k.kirim if "Masa magang" in p.teks]
+        self.assertEqual(len(masa), 1)
+        self.assertIn("dalam 5 hari", masa[0])
+
+    def test_magang_tidak_aktif_dikabari_sekali(self):
+        periode = {"mulai": "2026-11-16", "selesai": "2027-05-15"}
+        nonaktif = {**st(), "periode": periode, "magang_aktif": False}
+        k = putus("kartu", nonaktif, {"aktif": True}, jam(8, 0))
+        self.assertEqual(len(k.kirim), 1)
+        self.assertIn("tidak aktif sebelum tanggal selesai (15 Mei 2027)", k.kirim[0][1].teks)
+        self.assertEqual(putus("kartu", nonaktif, k.baru, jam(8, 0, d=21)).kirim, [])
+        selesai = {**nonaktif, "tanggal": "2027-05-16"}
+        k = putus("kartu", selesai, {"aktif": True}, datetime(2027, 5, 16, 8, 0, tzinfo=WIB))
+        self.assertIn("Masa magang sudah selesai.", k.kirim[0][1].teks)
 
     def test_sesi_hampir_habis(self):
         k = putus("kartu", st(sudah=True), waktu=jam(8, 0), sesi_sampai=datetime(2026, 11, 22, 3, 0, tzinfo=timezone.utc))
@@ -123,11 +192,15 @@ class TestFormat(unittest.TestCase):
     def semua(self):
         out = [pesan.kartu(TX, st(), NILAI, "Rina"), pesan.kartu(TX, st(sudah=True), None, ""),
                pesan.kartu_libur(TX, st(libur=True), "Rina"), pesan.terkirim(TX, st(sudah=True)),
-               pesan.revisi(TX, "2026-11-17", "a"), pesan.ditolak(TX, "2026-11-17", 1), pesan.sesi(TX, 2, date(2026, 11, 22)),
+               pesan.revisi(TX, "2026-11-17", "a"), pesan.disetujui(TX, ["2026-11-17"], 1, 2), pesan.ditolak(TX, "2026-11-17", 1), pesan.sesi(TX, 2, date(2026, 11, 22)),
                pesan.gangguan(TX, "x", ["15:00"], "16:00"), pesan.gangguan_pulih(TX, "17:10"), pesan.ping(TX, jam(8, 0)),
                pesan.menu(TX, "Rina"), pesan.status(TX, st(), date(2026, 12, 16)), pesan.rekap_minggu(TX, rekap()),
                pesan.rekap_bulan(TX, rekap()), pesan.jadwal(TX, "08:00", ["15:00", "16:30", "20:00"], "16:00"),
                pesan.bantuan(TX, ["15:00", "16:30", "20:00"])]
+        out += [pesan.draft(TX, j, "2026-11-19", 2) for j in ("siap", "kosong", "cek", "sesi", "format", "sesi_hampir")]
+        out += [pesan.masa(TX, j, 7, date(2027, 5, 15)) for j in ("h30", "h7", "terakhir", "selesai", "dini")]
+        out += [pesan.gangguan(TX, "x", ["15:00"], "16:00", s) for s in ("sesi", "monev", "format")]
+        out += [pesan.web_berubah(TX)]
         out += [pesan.ingat(TX, u, date(2026, 11, 20), 9, 60) for u in ("pertama", "kedua", "terakhir")]
         return out
 
@@ -252,6 +325,22 @@ class TestBot(unittest.TestCase):
         self.tg.log.clear()
         self.bot.jadwal(jam(20, 0))                                                    # pengingat malam tidak dikirim
         self.assertEqual([x for x in self.tg.log if x[0] == "kirim"], [])
+
+    def test_sebab_gangguan_dan_tombol(self):
+        from monev.bot.app import MonevTidakSiap, SesiMati, sebab
+        from monev.portal.api import ApiError, FormatBerubah
+
+        self.assertEqual(sebab(SesiMati("x")), "sesi")
+        self.assertEqual(sebab(ApiError("/users/me", 401)), "sesi")
+        self.assertEqual(sebab(FormatBerubah("/users/me/home tanpa field is_holiday")), "format")
+        self.assertEqual(sebab(ApiError("/holidays", 404)), "format")
+        self.assertEqual(sebab(MonevTidakSiap("x")), "monev")
+        self.assertEqual(sebab(ApiError("/users/me", 502)), "monev")
+        self.assertEqual(sebab(ValueError("x")), "lain")
+        p = pesan.gangguan(TX, "/users/me/home tanpa field is_holiday", ["15:00"], "16:30", "format")
+        self.assertIn("Bentuk data Monev berubah (/users/me/home tanpa field is_holiday).", p.teks)
+        self.assertEqual([d for _, d in p.tombol[0]], ["coba"])
+        self.assertEqual([d for _, d in pesan.gangguan(TX, "x", ["15:00"], None, "sesi").tombol[0]], ["coba", "cara"])
 
     def test_gangguan_satu_pesan_lalu_pulih(self):
         self.gagal = "sesi Monev habis, perlu login ulang"
