@@ -36,6 +36,8 @@ class Draft:
     obstacles: str = ""
     leave_reason: str = ""
     sources: list[str] = field(default_factory=list)
+    nama_sumber: list[str] = field(default_factory=list)   # nama proyek/klien dari sumber, untuk saringan nama
+    keraguan: list[str] = field(default_factory=list)      # catatan draft otomatis untuk dibaca saat review
     approved: bool = False
     revisi: bool = False
 

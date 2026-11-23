@@ -43,6 +43,7 @@ def cmd_config(args) -> int:
         "tim": cfg.tim,
         "rutinitas": cfg.rutinitas,
         "jangan_disebut": len(cfg.jangan_disebut),   # hanya jumlah; isinya lihat file
+        "lewati_proyek": cfg.lewati_proyek,
         "mode": cfg.mode,
         "workrecords_dir": str(cfg.workrecords_dir) if cfg.workrecords_dir else None,
         "workrecords_ada": bool(cfg.workrecords_dir and cfg.workrecords_dir.is_dir()),
@@ -50,7 +51,7 @@ def cmd_config(args) -> int:
         "git_penyedia": cfg.git_penyedia,
         "gitlab_host": cfg.gitlab_host,
         "nilai": cfg.nilai_dict(),
-        "draft_dir": str(cfg.profile_dir.parent / "draft"),
+        "draft_dir": str(cfg.draft_dir),
     }
     if args.json:
         print(json.dumps(info, indent=2, ensure_ascii=False))

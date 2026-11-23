@@ -48,6 +48,8 @@ monev sumber cari --json
   ditanyakan; format catatan ada di `docs/teknis/kontrak-sumber.md`. Lewati.
 - Setuju → tulis `dir = "<folder>"` di bagian `[sumber.workrecords]` file config (`monev config --json` → `path`).
   Ubah baris itu saja.
+- Tampilkan nama folder proyek, lalu tanya: "Ada proyek pribadi yang bukan pekerjaan magang?" Ada → tulis
+  `lewati_proyek = ["<folder>"]` di bagian `[laporan]` (tambahkan bagiannya bila belum ada). Tidak ada → lewati.
 
 ## 6. Jalur C: MCP kantor
 

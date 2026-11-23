@@ -152,7 +152,10 @@ function viewTerakhir(t) {
 
 function viewSehat(d) {
   const cli = !d.host ? ["", "CLI belum dicek"] : d.host.ok ? ["ok", "CLI terhubung"] : ["bahaya", "CLI tidak terhubung"];
-  const sesi = !d.sesi ? ["", "Login Monev belum dicek"] : d.sesi.ok ? ["ok", "Login Monev"] : ["bahaya", "Belum login Monev"];
+  const sisa = d.sesi && d.sesi.sampai ? Math.floor((d.sesi.sampai - Date.now()) / 86400000) : null;
+  const sampai = d.sesi && d.sesi.sampai ? ` s.d. ${new Date(d.sesi.sampai).getDate()} ${BULAN[new Date(d.sesi.sampai).getMonth()]}` : "";
+  const sesi = !d.sesi ? ["", "Login Monev belum dicek"] : !d.sesi.ok ? ["bahaya", "Belum login Monev"]
+    : sisa !== null && sisa <= 3 ? ["waspada", `Login Monev${sampai}`] : ["ok", `Login Monev${sampai}`];
   const a = d.aturan;
   const n = a && a.aktif ? (a.pagi.nyala ? 1 : 0) + (a.fokus.nyala ? 1 : 0) + (a.ingat.nyala ? (a.ingat.jam || []).filter(Boolean).length : 0) : 0;
   const ingat = !a ? ["", "Pengingat belum dicek"] : n ? ["ok", `Pengingat ${n} jadwal`] : ["", "Pengingat mati"];

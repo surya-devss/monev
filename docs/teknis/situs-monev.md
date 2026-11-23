@@ -10,6 +10,7 @@ Sumber: `uji` = dicoba langsung · `bundle` = dibaca dari JS aplikasi · `pandua
 | Kehadiran + laporan harian dikirim bersamaan, hanya untuk **hari ini** (waktu lokasi penempatan), batas 23.59 | panduan, uji |
 | Laporan **tidak bisa diedit** setelah terkirim, kecuali mentor meminta perbaikan (`NEEDS_REVISION`, tanpa batas waktu) | bundle, panduan |
 | Mentor: setujui / setujui + minta perbaikan / **tolak kehadiran** (data tidak sesuai → dihitung absen). Keputusan awal maks 14 hari | panduan |
+| **Periode = satu bulan sejak tanggal mulai magang**, dipakai untuk gaji dan absen. Mulai 16 Nov → periode 1 = 16 Nov–15 Des, periode 2 = 16 Des–15 Jan, dan seterusnya | pemilik (19 Nov), belum dicek ke panduan |
 | Peringatan absen: 3 hari kerja berturut / 7 per periode. Nonaktif: 5 berturut / 10 per periode | panduan |
 | Izin: 3 hari pertama per periode dibayar; ke-4 dst. tidak dibayar, tidak dihitung peringatan. "Tanpa Keterangan" langsung final | panduan |
 | Libur: hari libur nasional + `off_days` posisi (mis. `["SATURDAY","SUNDAY"]`) tidak wajib isi | uji |
@@ -27,9 +28,20 @@ Sumber: `uji` = dicoba langsung · `bundle` = dibaca dari JS aplikasi · `pandua
 | Access token di `sessionStorage.monev_access_token`, JWT RS512, ttl 6 jam, klaim `fingerprint` | uji |
 | Setiap request: `credentials: "include"` (cookie) + `Authorization: Bearer` + `X-Frontend-Build-ID` | bundle |
 | Refresh: `POST /auth/refresh` memakai cookie `monev_refresh_token` (±30 hari) | bundle, uji |
+| **Masa berlaku refresh token bergeser saat dipakai**: profil CLI login 17 Nov berlaku s.d. 17 Des, setelah dipakai harian `monev doctor` 19 Nov menunjukkan s.d. 19 Des. Sesi baru habis bila tidak dipakai ±30 hari. Batas maksimum mutlak (bila ada) belum diketahui | uji #56 |
 | Tidak ada API publik/API key untuk peserta | bundle |
+| Frontend Nuxt. File utama `<script type="module" src="/_nuxt/<hash>.js">` berganti setiap situs di-deploy ulang, dipakai bot dan extension sebagai penanda versi situs | uji #57 |
+| Field yang dipakai bot dan CLI (`WAJIB` di `monev/portal/api.py`) ada semua di respons 19 Nov. Bila salah satu hilang, pembacaan berhenti dengan "bentuk data Monev berubah" | uji #57 |
 
 Konsekuensi: semua akses API dijalankan **dari dalam halaman Monev di Chrome**, bukan curl/requests.
+
+**Tiga sesi terpisah.** Masing-masing login sendiri dan habis sendiri.
+
+| Sesi | Dipakai oleh | Tempat melihat tanggal habis | Peringatan sebelum habis |
+|---|---|---|---|
+| Profil Chrome CLI di laptop (`~/.local/share/monev/chrome-profile`) | `monev status`, `monev rekap`, draft terjadwal | `monev doctor` | Telegram dari draft terjadwal bila sisa ≤ 3 hari |
+| Salinan profil CLI di server (volume `monev_data`) | bot Telegram | `/status` di bot (baris Sesi Monev) | kartu 08.00 bila sisa ≤ 3 hari |
+| Chrome harian | extension: isi form, lokasi, pengingat desktop | popup extension, baris Login Monev | notifikasi bersama sapaan pagi bila sisa ≤ 3 hari |
 
 ## API
 
@@ -87,6 +99,9 @@ Gagal setelah klik kirim → cek langkah 10 dulu; sudah masuk = selesai, belum m
 otomatis. Selektor tidak ditemukan (aplikasi berubah) → berhenti dan laporkan.
 
 ## Belum diketahui
+- Batas izin. Pemilik pernah mendengar izin 5 hari dalam satu periode membuat peserta dikeluarkan, sedangkan panduan
+  v2026.10.03 hanya menyebut izin ke-4 dan seterusnya tidak dibayar dan tidak dihitung peringatan (angka 5 di panduan
+  untuk absen berturut). Perlu dipastikan ke mentor atau admin; bila benar, rekap perlu menghitung batas izin juga.
 - Perilaku backend bila Hadir tanpa koordinat (tidak akan dipakai untuk melewati prosedur).
 - Kapan state `DRAFT` muncul (frontend selalu mengirim `SUBMITTED`).
 - Izin dan revisi belum pernah dikirim sungguhan. Bentuk form dari bundle (`DMLWG_CQ.js`, 17 Nov 2026):

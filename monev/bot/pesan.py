@@ -226,10 +226,46 @@ def revisi(tx: Teks, tanggal: str, catatan: str) -> Pesan:
                  f"{tx('bot.revisi.tindakan')}")
 
 
+def daftar_tanggal(tanggal: list[str]) -> str:
+    """["2026-11-17", "2026-11-18", "2026-11-19"] → "17, 18, dan 19 Nov"; beda bulan → "30 Nov dan 1 Des"."""
+    d = [_d(t) for t in sorted(tanggal)]
+    sebulan = len({(x.year, x.month) for x in d}) == 1
+    teks = [str(x.day) for x in d[:-1]] if sebulan else [tgl(x) for x in d[:-1]]
+    akhir = tgl(d[-1])
+    if not teks:
+        return akhir
+    return f"{teks[0]} dan {akhir}" if len(teks) == 1 else f"{', '.join(teks)}, dan {akhir}"
+
+
+def disetujui(tx: Teks, tanggal: list[str], jumlah: int, total: int) -> Pesan:
+    """Satu pesan untuk semua tanggal yang baru disetujui mentor sejak pengecekan terakhir."""
+    return Pesan(f"<b>{tx('bot.disetujui.judul', tanggal=daftar_tanggal(tanggal))}</b>\n"
+                 f"{tx('bot.disetujui.isi', jumlah=str(jumlah), total=str(total))}")
+
+
 def ditolak(tx: Teks, tanggal: str, absen_total: int) -> Pesan:
     return Pesan(f"<b>{tx('bot.ditolak.judul', tanggal=tgl(_d(tanggal)))}</b>\n"
                  f"{tx('bot.ditolak.isi', absen=str(absen_total), batas_absen=str(BATAS['peringatan_total']))}\n"
                  f"{tx('bot.ditolak.tindakan')}")
+
+
+def draft(tx: Teks, jenis: str, tanggal: str, sisa: int | None = None) -> Pesan:
+    """Kabar dari proses terjadwal di laptop. jenis: siap | kosong | cek | sesi | format | sesi_hampir.
+    `tanggal` = tanggal laporan, atau tanggal habis sesi untuk sesi_hampir. Isi laporan tidak pernah ikut."""
+    k = f"bot.draft.{jenis}"
+    kapan = "" if sisa is None else "hari ini" if sisa <= 0 else f"dalam {sisa} hari"
+    return Pesan(f"<b>{tx(k + '.judul', tanggal=tgl(_d(tanggal)), kapan=kapan)}</b>\n{tx(k + '.isi')}\n{tx(k + '.tindakan')}")
+
+
+def web_berubah(tx: Teks) -> Pesan:
+    """Situs Monev di-deploy ulang (nama file utama frontend berganti). Teks `[web]` sama dengan notifikasi extension."""
+    return Pesan(f"<b>{tx('web.judul')}</b>\n{tx('web.isi')}\n{tx('web.tindakan')}")
+
+
+def masa(tx: Teks, jenis: str, sisa: int, tanggal: date) -> Pesan:
+    """Kabar masa magang. jenis: h30 | h7 | terakhir | selesai | dini."""
+    k = f"bot.masa.{jenis}"
+    return Pesan(f"<b>{tx(k + '.judul', sisa=str(sisa), tanggal=tgl(tanggal) + f' {tanggal.year}')}</b>\n{tx(k + '.isi')}")
 
 
 # ---------------------------------------------------------------- sistem
@@ -240,12 +276,14 @@ def sesi(tx: Teks, sisa: int, sampai: date) -> Pesan:
                  f"{tx('bot.sesi.tindakan')}")
 
 
-def gangguan(tx: Teks, alasan: str, percobaan: list[str], berikut: str | None) -> Pesan:
+def gangguan(tx: Teks, alasan: str, percobaan: list[str], berikut: str | None, sebab: str = "lain") -> Pesan:
+    """sebab: sesi | monev | format | lain (lihat app.sebab). Tombol cara login hanya untuk sesi habis."""
     coba = " dan ".join(jam_teks(j) for j in percobaan) if len(percobaan) <= 2 \
         else ", ".join(jam_teks(j) for j in percobaan[:-1]) + f", dan {jam_teks(percobaan[-1])}"
     lanjut = tx("bot.gangguan.percobaan", jam=coba, berikut=jam_teks(berikut) if berikut else "besok")
-    return Pesan(f"<b>{tx('bot.gangguan.judul')}</b>\n{tx('bot.gangguan.isi', alasan=alasan)}\n<i>{lanjut}</i>",
-                 tombol=[[(tx.mentah("bot.tombol.coba"), "coba"), (tx.mentah("bot.tombol.cara"), "cara")]])
+    tombol = [(tx.mentah("bot.tombol.coba"), "coba")] + ([(tx.mentah("bot.tombol.cara"), "cara")] if sebab == "sesi" else [])
+    return Pesan(f"<b>{tx('bot.gangguan.judul')}</b>\n{tx(f'bot.gangguan.sebab.{sebab}', alasan=alasan)}\n<i>{lanjut}</i>",
+                 tombol=[tombol])
 
 
 def gangguan_pulih(tx: Teks, jam: str) -> Pesan:
@@ -309,6 +347,17 @@ def status(tx: Teks, st: dict, sesi_sampai: date | None) -> Pesan:
                   tombol=_kembali(tx))
 
 
+def izin_teks(izin: int) -> str:
+    """'0 dari 3 yang dibayar'; lewat jatah → '4, 1 tidak dibayar'."""
+    n = BATAS["izin_dibayar"]
+    return f"{izin} dari {n} yang dibayar" if izin <= n else f"{izin}, {izin - n} tidak dibayar"
+
+
+def absen_teks(p: dict) -> str:
+    """'0 (peringatan di 7)'. Absen periode berjalan, termasuk kehadiran yang ditolak mentor."""
+    return f"{p['absen_total']} (peringatan di {BATAS['peringatan_total']})"
+
+
 def kalimat_status(p: dict) -> str:
     return {"aman": "Aman, belum mendekati batas peringatan.",
             "waspada": "Hati-hati, satu absen lagi sudah kena peringatan.",
@@ -323,23 +372,25 @@ def rekap_minggu(tx: Teks, r: dict) -> Pesan:
             for h in r["harian"]]
     return _pesan(("p", [f"<b>Minggu ini hadir {r['hadir']} dari {r['terhitung']} hari.</b>", rentang(a, b)]),
                   ("tabel", hari, ["Hari", "Kehadiran", "Mentor"]),
-                  ("p", [f"Izin {r['izin']} (sisa izin dibayar {p['izin_dibayar_sisa']}), absen {r['absen'] + r['ditolak']}.",
+                  ("p", [f"{tx('bot.rekap.periode', ke=str(p['ke']))}: absen {absen_teks(p)}, izin {izin_teks(p['izin'])}.",
                          kalimat_status(p)]),
                   tombol=_kembali(tx, (tx.mentah("bot.tombol.rekap_bulan") + " ›", "v:bulan")))
 
 
 def rekap_bulan(tx: Teks, r: dict) -> Pesan:
-    a, b = _d(r["dari"]), _d(r["sampai"])
+    """Rekap periode berjalan (satu bulan sejak tanggal mulai magang), bukan bulan kalender."""
     p, ps = r["periode"], r["persetujuan"]
+    a, b = _d(p["awal"]), _d(p["akhir"])
     revisi_n = sum(1 for h in r["harian"] if h["mentor"] == "revisi")
     inti = "kehadiran penuh" if r["penuh"] else f"hadir {r['hadir']} dari {r['terhitung']} hari"
+    absen = absen_teks(p) + (f", {r['ditolak']} di antaranya ditolak mentor" if r["ditolak"] else "")
     baris = [("Hadir", str(r["hadir"])),
-             ("Izin", f"{r['izin']} (sisa izin dibayar {p['izin_dibayar_sisa']})"),
-             ("Absen", f"{r['absen']}, ditolak mentor {r['ditolak']}"),
-             ("Mentor", f"{ps['disetujui']} disetujui, {ps['menunggu']} menunggu, {revisi_n} perlu revisi"),
-             ("Berturut", f"absen {p['absen_berturut']} dari {BATAS['peringatan_berturut']}"),
-             ("Total", f"absen {p['absen_total']} dari {BATAS['peringatan_total']}")]
-    return _pesan(("p", [f"<b>{BULAN[b.month - 1]} {b.year}, {inti}.</b>", f"{rentang(a, b)} · {r['hari_kerja']} hari kerja"]),
+             ("Izin", izin_teks(p["izin"])),
+             ("Absen", absen),
+             ("Berturut", f"absen {p['absen_berturut']} (peringatan di {BATAS['peringatan_berturut']})"),
+             ("Mentor", f"{ps['disetujui']} disetujui, {ps['menunggu']} menunggu, {revisi_n} perlu revisi")]
+    judul = tx("bot.rekap.periode", ke=str(p["ke"]))
+    return _pesan(("p", [f"<b>{judul}, {inti}.</b>", f"{rentang(a, b)} · {r['hari_kerja']} hari kerja sampai hari ini"]),
                   ("tabel", baris, None), ("p", [kalimat_status(p)]),
                   tombol=_kembali(tx, (tx.mentah("bot.tombol.rekap_minggu") + " ›", "v:minggu")))
 
@@ -358,6 +409,6 @@ def bantuan(tx: Teks, pengingat: list[str]) -> Pesan:
         else jam_teks(pengingat[0]) if pengingat else "-"
     return _pesan(("p", [f"<b>{tx('bot.bantuan.judul')}</b>"]),
                   ("p", ["/menu semua pilihan", "/status status laporan hari ini", "/rekap rekap minggu ini",
-                         "/rekap_bulan rekap bulan ini", "/ping cek bot masih aktif"]),
+                         "/rekap_bulan rekap periode berjalan", "/ping cek bot masih aktif"]),
                   ("p", [tx("bot.bantuan.isi", jam=jam), f"<i>{tx('bot.bantuan.catatan')}</i>"]),
                   tombol=_kembali(tx))

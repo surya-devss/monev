@@ -58,6 +58,9 @@ class Config:
     tim: str = ""
     rutinitas: list[str] = field(default_factory=list)
     jangan_disebut: list[str] = field(default_factory=list)
+    lewati_proyek: list[str] = field(default_factory=list)   # [laporan]: proyek yang tidak masuk laporan
+    nama_boleh: list[str] = field(default_factory=list)      # [laporan]: pengecualian saringan nama
+    jam_selesai: str = "17:00"                               # [laporan]: kerja sesudah jam ini = di luar jam
     mode: str = "auto"
     workrecords_dir: Path | None = None
     lewati_folder: list[str] = field(default_factory=lambda: ["_knowledge", "_plans"])
@@ -73,6 +76,12 @@ class Config:
     bot_rekap: str = "16:00"
     bot_pantau: list[str] = field(default_factory=lambda: ["12:00", "18:00", "22:00"])
     bot_tunda_menit: int = 60
+    jadwal_jam: list[str] = field(default_factory=lambda: ["16:00", "17:00", "18:00", "19:00"])
+    jadwal_alat_mcp: list[str] = field(default_factory=list)   # tool MCP baca untuk proses terjadwal
+
+    @property
+    def draft_dir(self) -> Path:
+        return self.profile_dir.parent / "draft"
 
     def nilai_dict(self) -> dict | None:
         """Nilai perusahaan untuk pesan fokus (bot) dan extension; None bila `[profil.nilai] poin` kosong."""
@@ -112,6 +121,11 @@ def load_config() -> Config:
     cfg.tim = profil.get("tim", "")
     cfg.rutinitas = list(profil.get("rutinitas", []))
     cfg.jangan_disebut = list(profil.get("jangan_disebut", []))
+    laporan = raw.get("laporan", {})
+    cfg.lewati_proyek = [str(x) for x in laporan.get("lewati_proyek", [])]
+    cfg.nama_boleh = [str(x) for x in laporan.get("nama_boleh", [])]
+    if re.fullmatch(r"\d\d:\d\d", str(laporan.get("jam_selesai", ""))):
+        cfg.jam_selesai = laporan["jam_selesai"]
     nilai = profil.get("nilai", {})
     cfg.nilai_semboyan = str(nilai.get("semboyan", ""))
     cfg.nilai_poin = _poin_nilai(nilai.get("poin", []))
@@ -136,6 +150,11 @@ def load_config() -> Config:
         cfg.bot_pantau = sorted(x for x in bot["pantau"] if jam(x))
     if isinstance(bot.get("tunda_menit"), int) and 5 <= bot["tunda_menit"] <= 240:
         cfg.bot_tunda_menit = bot["tunda_menit"]
+    jadwal = raw.get("jadwal", {})
+    jam_draft = sorted(x for x in jadwal.get("jam", []) if jam(x))
+    if jam_draft:
+        cfg.jadwal_jam = jam_draft
+    cfg.jadwal_alat_mcp = [str(x) for x in jadwal.get("alat_mcp", [])]
     return cfg
 
 
@@ -211,6 +230,11 @@ poin = []                      # contoh: ["Integritas: jujur soal progres dan ha
 # [pesan.ingat.pertama]        # opsional: ganti teks notifikasi extension; kunci dan teks bawaan ada di
 # judul = "..."                # monev/teks/bawaan.toml (yang tidak ditulis di sini tetap memakai bawaan)
 
+[laporan]                      # saringan isi laporan; nama proyek dan klien diambil otomatis dari sumber
+lewati_proyek = []             # proyek yang tidak masuk laporan, mis. proyek pribadi
+nama_boleh = []                # nama yang boleh disebut walau tertangkap saringan
+jam_selesai = "17:00"          # kerja sesudah jam ini dianggap di luar jam kerja
+
 [sumber]                       # bahan draft /monev, semuanya dibaca saja (docs/teknis/kontrak-sumber.md)
 mode = "auto"                  # auto | workrecords | checklist
 
@@ -228,9 +252,13 @@ gitlab_host = "gitlab.com"     # GitLab kantor/self-hosted: ganti dengan host-ny
 [bot]                          # jadwal bot Telegram (WIB, hari kerja); dibaca config di server tempat bot jalan
 kartu = "08:00"                # kartu hari ini: sapaan, status laporan, fokus
 pengingat = ["15:00", "16:30", "20:00"]   # hanya bila laporan belum diisi; yang terakhir paling tegas
-rekap = "16:00"                # Jumat: rekap minggu; hari kerja terakhir bulan: rekap bulan
-pantau = ["12:00", "18:00", "22:00"]      # cek perubahan (terkirim, revisi, ditolak) tanpa pengingat
+rekap = "16:00"                # Jumat: rekap minggu; hari kerja terakhir periode: rekap periode
+pantau = ["12:00", "18:00", "22:00"]      # cek perubahan (terkirim, revisi, disetujui, ditolak) tanpa pengingat
 tunda_menit = 60               # tombol "Ingatkan lagi" di pengingat
+
+[jadwal]                       # draft otomatis di laptop (WIB), aktif setelah `monev jadwal pasang`
+jam = ["16:00", "17:00", "18:00", "19:00"]   # jam berikutnya mencoba lagi bila bahan belum ada
+alat_mcp = []                  # nama lengkap tool MCP yang hanya membaca, boleh dipakai proses terjadwal
 
 [browser]
 channel = "chrome"

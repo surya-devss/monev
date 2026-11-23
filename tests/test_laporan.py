@@ -118,6 +118,33 @@ class TestPeringatan(unittest.TestCase):
         res = validate(base(), history=[lama])
         self.assertTrue(any("mirip laporan 2026-11-15" in w for w in res.warnings))
 
+    def test_detail_temuan_keamanan(self):
+        for teks in ["Port yang tampak tersaring ternyata masih dapat dijangkau lewat proxy.",
+                     "Menemukan 3 temuan pada layanan.", "Mencatat temuan kritis pada server."]:
+            with self.subTest(teks=teks):
+                self.assertTrue(any("detail temuan" in w for w in validate(with_activity(teks)).warnings))
+        for teks in ["Menyusun laporan penilaian kerentanan.", "Mencocokkan hasil pindai dengan konfigurasi layanan.",
+                     "Menyampaikan temuan kepada penanggung jawab layanan."]:
+            with self.subTest(teks=teks):
+                self.assertFalse(any("detail temuan" in w for w in validate(with_activity(teks)).warnings))
+
+    def test_batasan_alat_bantu(self):
+        res = validate(with_activity("Pengujian tidak dapat dijalankan melalui alat bantu otomatis."))
+        self.assertTrue(any("alat bantu" in w for w in res.warnings))
+
+    def test_butir_terlalu_panjang(self):
+        pas = replace(base(), activity_log="1. " + "a" * 250 + "\n2. Membaca dokumen.")
+        self.assertFalse(any("butir" in w for w in validate(pas).warnings))
+        panjang = replace(base(), activity_log="1. Membaca dokumen.\n2. " + "a" * 251)
+        self.assertTrue(any("butir 2 251 karakter" in w for w in validate(panjang).warnings))
+
+    def test_pembuka_pembelajaran_berulang(self):
+        d = replace(base(), lesson_learned="Saya belajar bahwa setiap klaim perlu bukti." + FILLER)
+        sama = [{"date": "2026-11-15", "lesson_learned": "saya belajar bahwa jadwal perlu dicatat."}]
+        beda = [{"date": "2026-11-15", "lesson_learned": "Dari perbaikan alert, saya memahami dampaknya."}]
+        self.assertTrue(any("pembuka sama" in w for w in validate(d, history=sama).warnings))
+        self.assertFalse(any("pembuka sama" in w for w in validate(d, history=beda).warnings))
+
 
 class TestFormat(unittest.TestCase):
     def test_js_length_utf16(self):

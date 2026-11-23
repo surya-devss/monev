@@ -38,7 +38,8 @@ Langkah pemakaian lengkap (login, extension, bot): [docs/panduan/pasang.md](docs
 - **Teks bot dan notifikasi** ada di [`monev/teks/bawaan.toml`](monev/teks/bawaan.toml), bukan di kode.
 - **Dokumentasi ikut diperbarui** di PR yang sama: panduan di `docs/panduan/`, cara kerja di `docs/teknis/`,
   entri di [`CHANGELOG.md`](CHANGELOG.md)
-  bagian `[Unreleased]` bila terasa oleh pengguna. `tests/test_dokumen.py` ikut memeriksa perintah, paket, dan tautan.
+  bagian `[Unreleased]` bila terasa oleh pengguna. Fitur baru juga diperiksa di `README.md` dan langkah `/monev setup`.
+  `tests/test_dokumen.py` ikut memeriksa perintah, paket, dan tautan.
 - **Monev hanya dibaca.** Kode tidak boleh mengirim laporan selain lewat extension setelah pengguna menyetujui
   draft (lihat aturan di [`plugin/skills/monev/SKILL.md`](plugin/skills/monev/SKILL.md)).
 

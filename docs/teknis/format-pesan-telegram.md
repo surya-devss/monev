@@ -175,13 +175,23 @@ Sekali per tanggal.
 Perbaiki dari laptop dengan <code>/monev revisi</code>.
 ```
 
+### 10b. Laporan disetujui mentor
+
+Sekali per tanggal. Tanggal yang ketahuan disetujui di pengecekan yang sama digabung jadi satu pesan. Saat state bot
+belum mencatat persetujuan (bot baru diperbarui), persetujuan yang ada hanya dicatat.
+
+```html
+<b>Laporan 17 dan 18 Nov disetujui mentor.</b>
+Total disetujui 3 dari 4 laporan terkirim.
+```
+
 ### 11. Kehadiran ditolak mentor
 
 Sekali per tanggal.
 
 ```html
 <b>Kehadiran 14 Nov ditolak mentor.</b>
-Hari itu dihitung absen. Total absen sekarang 1 dari batas peringatan 7.
+Hari itu dihitung absen. Absen periode ini sekarang 1 (peringatan di 7).
 Kalau menurutmu keliru, tanyakan ke mentor.
 ```
 
@@ -197,15 +207,35 @@ Login ulang di laptop lalu salin sesinya ke server, caranya ada di <code>docs/pa
 
 ### 13. Gangguan
 
-Satu pesan per hari, diedit di setiap percobaan.
+Satu pesan per hari, diedit di setiap percobaan. Kalimat kedua mengikuti penyebabnya (`[bot.gangguan.sebab]`).
+
+Sesi habis (dialihkan ke halaman login, atau API menjawab 401/403):
 
 ```html
 <b>Bot belum bisa membaca Monev.</b>
-Penyebabnya sesi Monev habis, perlu login ulang. Pengingat ditunda dulu.
+Sesi Monev di server habis, perlu login ulang. Pengingat ditunda dulu.
 <i>Dicoba 15.00 dan 16.30. Berikutnya 18.00.</i>
 ```
 
 Tombol: [Coba sekarang] · [Cara memperbarui]
+
+Monev tidak bisa dihubungi (halaman tidak siap, API 5xx, jaringan):
+
+```html
+<b>Bot belum bisa membaca Monev.</b>
+Situs Monev tidak bisa dihubungi atau terlalu lambat. Biasanya pulih sendiri, pengingat ditunda dulu.
+<i>Dicoba 15.00 dan 16.30. Berikutnya 18.00.</i>
+```
+
+Bentuk data berubah (field wajib hilang atau API 404):
+
+```html
+<b>Bot belum bisa membaca Monev.</b>
+Bentuk data Monev berubah (/users/me/home tanpa field is_holiday). Bot berhenti dulu supaya tidak salah kabar, tool perlu diperbarui.
+<i>Dicoba 15.00 dan 16.30. Berikutnya 18.00.</i>
+```
+
+Dua jenis terakhir hanya punya tombol [Coba sekarang]. Penyebab lain memakai kalimat "Penyebabnya … Pengingat ditunda dulu."
 
 ### 14. Gangguan setelah pulih
 
@@ -233,7 +263,7 @@ Cadangan teks biasa:
 Status dan rekap dibaca dari Monev, lalu dipakai ulang selama 10 menit.
 ```
 
-Tombol: [Status hari ini] · [Rekap minggu] / [Rekap bulan] · [Jadwal pengingat] / [Bantuan]
+Tombol: [Status hari ini] · [Rekap minggu] / [Rekap periode] · [Jadwal pengingat] / [Bantuan]
 
 ### 16. Status hari ini
 
@@ -280,7 +310,7 @@ Rich message:
 <tr><td>Sen 16</td><td>hadir</td><td>disetujui</td></tr>
 <tr><td>Sel 17</td><td>izin</td><td>menunggu</td></tr>
 </table>
-<p>Izin 1 (sisa izin dibayar 2), absen 0.<br/>Aman, belum mendekati batas peringatan.</p>
+<p>Periode 1: absen 0 (peringatan di 7), izin 1 dari 3 yang dibayar.<br/>Aman, belum mendekati batas peringatan.</p>
 ```
 
 Cadangan teks biasa:
@@ -292,26 +322,27 @@ Cadangan teks biasa:
 • Sen 16 · hadir · disetujui
 • Sel 17 · izin · menunggu
 
-Izin 1 (sisa izin dibayar 2), absen 0.
+Periode 1: absen 0 (peringatan di 7), izin 1 dari 3 yang dibayar.
 Aman, belum mendekati batas peringatan.
 ```
 
-Tombol: [‹ Menu] · [Rekap bulan ›]
+Tombol: [‹ Menu] · [Rekap periode ›]
 
-### 18. Rekap bulan
+### 18. Rekap periode
 
-Hari kerja terakhir bulan 16.00, /rekap_bulan, atau tombol.
+Periode = satu bulan sejak tanggal mulai magang (16 Nov–15 Des, 16 Des–15 Jan, …). Dikirim pukul 16.00 di hari kerja
+terakhir periode, atau lewat /rekap_bulan dan tombol. Absen dan izin dibayar dihitung per periode, absen
+berturut dihitung lintas periode.
 
 Rich message:
 
 ```html
-<p><b>November 2026, hadir 1 dari 2 hari.</b><br/>16–20 Nov 2026 · 2 hari kerja</p>
+<p><b>Periode 1, hadir 1 dari 2 hari.</b><br/>16 Nov – 15 Des 2026 · 2 hari kerja sampai hari ini</p>
 <table bordered compact><tr><td><b>Hadir</b></td><td>1</td></tr>
-<tr><td><b>Izin</b></td><td>1 (sisa izin dibayar 2)</td></tr>
-<tr><td><b>Absen</b></td><td>0, ditolak mentor 0</td></tr>
+<tr><td><b>Izin</b></td><td>1 dari 3 yang dibayar</td></tr>
+<tr><td><b>Absen</b></td><td>0 (peringatan di 7)</td></tr>
+<tr><td><b>Berturut</b></td><td>absen 0 (peringatan di 3)</td></tr>
 <tr><td><b>Mentor</b></td><td>1 disetujui, 1 menunggu, 0 perlu revisi</td></tr>
-<tr><td><b>Berturut</b></td><td>absen 0 dari 3</td></tr>
-<tr><td><b>Total</b></td><td>absen 0 dari 7</td></tr>
 </table>
 <p>Aman, belum mendekati batas peringatan.</p>
 ```
@@ -319,17 +350,19 @@ Rich message:
 Cadangan teks biasa:
 
 ```html
-<b>November 2026, hadir 1 dari 2 hari.</b>
-16–20 Nov 2026 · 2 hari kerja
+<b>Periode 1, hadir 1 dari 2 hari.</b>
+16 Nov – 15 Des 2026 · 2 hari kerja sampai hari ini
 
 <b>Hadir</b>  1
-<b>Izin</b>  1 (sisa izin dibayar 2)
-<b>Absen</b>  0, ditolak mentor 0
+<b>Izin</b>  1 dari 3 yang dibayar
+<b>Absen</b>  0 (peringatan di 7)
+<b>Berturut</b>  absen 0 (peringatan di 3)
 <b>Mentor</b>  1 disetujui, 1 menunggu, 0 perlu revisi
-<b>Berturut</b>  absen 0 dari 3
-<b>Total</b>  absen 0 dari 7
 
 Aman, belum mendekati batas peringatan.
+
+Izin lewat jatah ditulis "4, 1 tidak dibayar". Kehadiran yang ditolak mentor ikut dihitung absen dan disebut di baris
+Absen ("…, 1 di antaranya ditolak mentor").
 ```
 
 Tombol: [‹ Menu] · [Rekap minggu ›]
@@ -373,7 +406,7 @@ Rich message:
 
 ```html
 <p><b>monev bot mengingatkan dan merekap laporan Monev kamu.</b></p>
-<p>/menu semua pilihan<br/>/status status laporan hari ini<br/>/rekap rekap minggu ini<br/>/rekap_bulan rekap bulan ini<br/>/ping cek bot masih aktif</p>
+<p>/menu semua pilihan<br/>/status status laporan hari ini<br/>/rekap rekap minggu ini<br/>/rekap_bulan rekap periode berjalan<br/>/ping cek bot masih aktif</p>
 <p>Pengingat otomatis jam 15.00, 16.30, dan 20.00 WIB di hari kerja, hanya bila laporan belum diisi.<br/><i>Bot hanya membaca Monev. Laporan tetap ditulis dan dikirim dari laptop.</i></p>
 ```
 
@@ -385,7 +418,7 @@ Cadangan teks biasa:
 /menu semua pilihan
 /status status laporan hari ini
 /rekap rekap minggu ini
-/rekap_bulan rekap bulan ini
+/rekap_bulan rekap periode berjalan
 /ping cek bot masih aktif
 
 Pengingat otomatis jam 15.00, 16.30, dan 20.00 WIB di hari kerja, hanya bila laporan belum diisi.
@@ -401,3 +434,101 @@ Bot aktif sejak 16 Nov pukul 23.52 WIB.
 ```
 
 Pesan dan tombol dari chat selain milik pemilik bot diabaikan.
+
+### 22. Kabar draft terjadwal
+
+Dikirim dari laptop oleh `monev jadwal jalan`, bukan dari bot di server, dengan susunan yang sama
+(`pesan.draft()`, teks `[bot.draft.*]`). Satu jenis sekali per hari, tanpa tombol, tanpa isi laporan.
+
+Draft siap, begitu draft tersimpan:
+
+```html
+<b>Draft laporan 19 Nov sudah siap.</b>
+Disusun otomatis dari catatan kerja, belum dikirim.
+Periksa dan kirim dari laptop dengan <code>/monev</code>.
+```
+
+Bahan kosong, jadwal terakhir:
+
+```html
+<b>Draft laporan 19 Nov belum disusun.</b>
+Bahan hari ini masih kosong sampai jadwal terakhir.
+Lengkapi catatan kerja, lalu isi dari laptop dengan <code>/monev</code>.
+```
+
+Gagal disusun, jadwal terakhir:
+
+```html
+<b>Draft laporan 19 Nov gagal disusun otomatis.</b>
+Prosesnya gagal atau hasilnya tidak lolos pemeriksaan.
+Isi dari laptop dengan <code>/monev</code>.
+```
+
+Sesi Monev di laptop habis:
+
+```html
+<b>Draft laporan 19 Nov belum disusun.</b>
+Sesi Monev di laptop habis, jadi status hari ini tidak terbaca.
+Login ulang dengan menjalankan <code>monev</code> di terminal laptop.
+```
+
+Bentuk data Monev berubah, dikirim saat itu juga:
+
+```html
+<b>Draft laporan 19 Nov belum disusun.</b>
+Bentuk data Monev berubah, jadi proses berhenti supaya tidak salah membaca status.
+Isi dari laptop dengan <code>/monev</code> sambil menunggu tool diperbarui.
+```
+
+Sesi Monev di laptop sisa ≤ 3 hari, sekali per hari:
+
+```html
+<b>Sesi Monev di laptop habis dalam 2 hari (19 Des).</b>
+Setelah itu draft otomatis dan <code>monev status</code> berhenti.
+Login ulang dengan <code>monev login</code> di terminal laptop.
+```
+
+### 23. Masa magang
+
+Dari tanggal selesai di profil Monev. Satu kabar per ambang (H-30, H-7, hari terakhir). Bila bot sempat mati
+melewati beberapa ambang, cukup kabar ambang terdekat.
+
+```html
+<b>Masa magang selesai dalam 30 hari (15 Mei 2027).</b>
+Di bulan terakhir, isi survei yang diminta Monev supaya laporan tidak ditolak.
+```
+
+```html
+<b>Masa magang selesai dalam 7 hari (15 Mei 2027).</b>
+Tetap kirim laporan setiap hari kerja sampai hari terakhir.
+```
+
+```html
+<b>Hari ini hari terakhir magang (15 Mei 2027).</b>
+Jangan lupa kirim laporan hari ini. Terima kasih sudah konsisten sampai akhir.
+```
+
+Saat Monev mengubah magang dari aktif ke tidak aktif, sekali:
+
+```html
+<b>Masa magang sudah selesai.</b>
+Monev menandai magang tidak aktif. Pengingat dan rekap berhenti.
+```
+
+Bila itu terjadi sebelum tanggal selesai:
+
+```html
+<b>Monev menandai magang tidak aktif sebelum tanggal selesai (15 Mei 2027).</b>
+Pengingat dan rekap berhenti. Tanyakan ke mentor atau admin program bila ini keliru.
+```
+
+### 24. Situs Monev diperbarui
+
+Nama file utama frontend Monev (`/_nuxt/<hash>.js`) berganti, artinya situs di-deploy ulang. Pembacaan pertama hanya
+mencatat. Teks dari `[web]`, sama dengan notifikasi desktop extension.
+
+```html
+<b>Tampilan situs Monev baru saja diperbarui.</b>
+Membaca status masih jalan, tetapi form laporan bisa saja ikut berubah.
+Sebelum kirim berikutnya, coba dulu dengan <code>monev kirim --uji</code>.
+```

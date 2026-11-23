@@ -72,6 +72,32 @@ regex = '(?<=[a-z\)]): (?=[a-z])'
 nama  = "jargon internal"
 regex = '\b(?:L[0-7]|T\d{1,2}|AC-?R?\d+|canary|fase [A-Z]\b)'
 
+[[peringatan]]
+nama  = "penyebutan alat AI"
+regex = '(?i)(?<!wazuh )\b(?:agent|claude|chatgpt|llm|prompt)\b(?!\s+wazuh)'
+
+[[peringatan]]
+nama  = "batasan alat bantu kerja"
+regex = '(?i)\balat bantu (?:otomatis|ai)\b'
+
+[[peringatan]]
+nama  = "kemungkinan detail temuan keamanan"
+regex = '(?i)\bport\b[^.\n]{0,80}\b(?:terbuka|tersaring|terekspos|dijangkau|diakses)\b|\b(?:terbuka|terekspos)\b[^.\n]{0,40}\bport\b|\b\d+\s+temuan\b|\btemuan\s+(?:kritis|tinggi|sedang|rendah)\b'
+
+[gaya]
+butir_maks = 250   # peringatan bila satu butir uraian aktivitas lebih panjang dari ini
+pembuka_kata = 3   # jumlah kata awal pembelajaran yang dibandingkan dengan laporan terakhir
+
+# Nama yang boleh disebut di laporan. Nama lain dari sumber (proyek, klien) ditulis secara umum.
+[nama]
+umum = ["Grafana", "Wazuh", "GitLab", "GitHub", "Docker", "Kubernetes", "Proxmox", "Prometheus", "Loki", "Nginx",
+        "Linux", "Ubuntu", "Debian", "Slack", "Python", "PostgreSQL", "MySQL", "Redis", "Terraform", "Ansible",
+        "Jenkins", "Cloudflare", "Keycloak", "VPN", "WireGuard", "DNS", "SSH", "SSL", "TLS", "HTTP", "HTTPS", "API",
+        "CLI", "CI", "CD", "VM", "LXC", "CPU", "RAM", "SLA", "SOP", "ISO", "VAPT", "NPM", "SIEM", "FIM", "SDD", "HTML",
+        "JSON", "YAML", "README", "DevOps", "Monitoring", "Logging", "Alerting", "Infrastruktur", "Infrastructure",
+        "Dokumentasi", "Keamanan", "Security", "Internal", "Audit", "Compliance", "Deployment", "Backup"]
+program = ["MagangHub", "Monev", "Kemnaker", "SIAPkerja"]
+
 [kemiripan]
-ambang = 0.85      # peringatan bila field ≥85% mirip laporan terdahulu di arsip
+ambang = 0.85     # peringatan bila field ≥85% mirip laporan terdahulu di arsip
 riwayat = 10       # jumlah laporan terakhir yang dibandingkan

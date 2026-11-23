@@ -60,20 +60,26 @@ Cara menyambungkan: [`../panduan/pasang.md`](../panduan/pasang.md#sumber-bahan-p
 | K4 | Pembelajaran | baris `Decision (YYYY-MM-DD…)`, `Pitfall (…)`, `Observasi (…)` di bawah `## Key technical decisions and pitfalls` |
 | K5 | Judul | frontmatter `title` atau judul `# …` (nomor tiket dibuang saat menulis laporan) |
 | K6 | Status | frontmatter `status`; `blocked` dibaca sebagai kendala |
+| K7 | Klien (opsional) | frontmatter `client`: nama klien atau `internal`; nama klien dan nama folder proyek masuk saringan nama `monev validate` |
+| K8 | Waktu kerja (opsional) | tabel di bawah `## Daily time log`, kolom: tanggal · mulai · selesai · durasi · kegiatan · dasar waktu. Teks `carry-over dari YYYY-MM-DD HH:MM-HH:MM` menandai jam yang berasal dari tanggal lain |
 
-Section lain di file diabaikan, jadi format yang lebih lengkap tetap terbaca. Mengubah salah satu baris K1–K6
+Section lain di file diabaikan, jadi format yang lebih lengkap tetap terbaca. Mengubah salah satu baris K1–K8
 berarti mengubah halaman ini, `sources.md`, dan `monev/sumber/catatan.py` (`cari`, `baca`) beserta tesnya di commit
 yang sama. Hanya tabel di bawah `## Daily activity log` yang dibaca untuk aktivitas; baris bertanggal di tabel lain
-(mis. *Daily time log*) diabaikan.
+(*Daily time log* hanya dipakai untuk mengenali carry-over dan kerja di luar jam, K8).
 
 ## Aturan arah data
 
 - **Satu arah, read-only.** monev tidak menulis ke work records, MCP, Git host, atau alat lain.
 - Nomor tiket, MR, hash, IP, URL, dan nama orang dari sumber hanya jadi bahan; tidak masuk teks laporan
   (dicek `monev validate`).
+- Nama proyek dan klien dari sumber ditulis umum. Nama dikumpulkan saat validasi, jadi tidak ada daftar yang dirawat.
+  Teknologi, standar, nama perusahaan sendiri, dan nama program ada di `[nama]` pada `monev/laporan/aturan.toml`.
+- `monev sumber siap` hanya membaca: repo work records tidak pernah ditarik atau diubah.
 - Rutinitas yang tercatat di logtime **dan** kalender masuk draft dan disebut di keraguan; yang hanya di satu sumber,
   hari pertama, atau hari dengan acara khusus ditanyakan dulu.
-  Logtime yang ditandai *carry-over* dari tanggal lain bukan aktivitas hari itu. Aktivitas Git di repo yang jelas bukan pekerjaan magang juga ditanyakan dulu.
+  Logtime yang ditandai *carry-over* dari tanggal lain bukan aktivitas hari itu. Kerja di luar jam yang belum
+  dilaporkan boleh masuk laporan hari kerja berikutnya dengan waktu yang ditulis jujur. Aktivitas Git di repo yang jelas bukan pekerjaan magang juga ditanyakan dulu.
 
 ## Siapa punya apa
 

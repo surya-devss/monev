@@ -101,6 +101,64 @@ def cmd_draft(args) -> int:
     return EXIT_OK
 
 
+def saringan_nama(cfg, d, rules: dict):
+    """Saringan nama untuk draft `d`: proyek dan klien dibaca dari work records saat ini, ditambah `nama_sumber` draft."""
+    from ..laporan.nama import buat_saringan
+    from ..sumber.catatan import baca, daftar_proyek
+
+    folder = cfg.workrecords_dir
+    ada = bool(folder and folder.is_dir())
+    semua = daftar_proyek(folder, cfg.lewati_folder) if ada else []
+    hari_ini = baca(folder, d.date, cfg.lewati_folder) if ada else []
+    return buat_saringan(semua, hari_ini, d.nama_sumber, rules, cfg.perusahaan, cfg.nama_boleh, cfg.lewati_proyek)
+
+
+def cmd_eval(args) -> int:
+    """Skor draft latihan terhadap laporan yang benar-benar terkirim. Hanya membaca."""
+    import re
+    from pathlib import Path
+
+    from ..config import data_dir
+    from ..laporan.draft import load
+    from ..laporan.nilai import arsip_sah, nilai_draft
+    from ..laporan.validasi import load_rules, validate
+
+    cfg = load_config()
+    folder = Path(args.folder) if args.folder else cfg.draft_dir
+    rules = load_rules()
+    hasil, dilewati = [], []
+    # `<tanggal>.json` adalah draft yang dipakai mengirim, jadi tidak dinilai: isinya sama dengan kunci jawaban.
+    for p in sorted(folder.glob("*-????-??-??.json")):
+        tanggal = re.search(r"\d{4}-\d{2}-\d{2}", p.name).group()
+        if tanggal in (args.lewati or []):
+            continue
+        f_arsip = data_dir() / "arsip" / f"{tanggal}.json"
+        arsip = json.loads(f_arsip.read_text(encoding="utf-8")) if f_arsip.exists() else {}
+        if not arsip_sah(arsip, tanggal):
+            dilewati.append(tanggal)
+            continue
+        d = load(p)
+        res = validate(d, rules, cfg.jangan_disebut, saringan=saringan_nama(cfg, d, rules))
+        hasil.append({"tanggal": tanggal, "file": p.name, **nilai_draft(json.loads(p.read_text(encoding="utf-8")), arsip),
+                      "lolos_validasi": res.ok, "pelanggaran": res.errors})
+    rata = round(sum(h["skor"] for h in hasil) / len(hasil)) if hasil else None
+    if args.json:
+        print(json.dumps({"folder": str(folder), "rata_rata": rata, "hasil": hasil, "dilewati": dilewati},
+                         indent=2, ensure_ascii=False))
+    else:
+        for h in hasil:
+            print(f"{h['tanggal']}  skor {h['skor']:>3}  kegiatan {h['kegiatan']['cocok']}/{h['kegiatan']['total']}"
+                  f" (+{h['butir_tambahan']} tambahan)  pembelajaran {h['pembelajaran']['cocok']}/{h['pembelajaran']['total']}"
+                  f"  kendala {h['kendala']['cocok']}/{h['kendala']['total']} (tidak masuk skor)"
+                  f"  {'lolos' if h['lolos_validasi'] else 'GAGAL validasi'}")
+            for e in h["pelanggaran"]:
+                print(f"    ✗ {e}")
+        if dilewati:
+            print(f"Dilewati, arsip tidak sah atau belum ada: {', '.join(dilewati)}")
+        print(f"Rata-rata skor: {rata}" if hasil else f"✗ Tidak ada draft yang bisa dinilai di {folder}")
+    return EXIT_OK if hasil else EXIT_FAIL
+
+
 def cmd_validate(args) -> int:
     from pathlib import Path
 
@@ -116,7 +174,8 @@ def cmd_validate(args) -> int:
     d = load(path)
     rules = load_rules()
     history = load_history(data_dir() / "arsip", rules.get("kemiripan", {}).get("riwayat", 10), exclude_date=d.date)
-    res = validate(d, rules, cfg.jangan_disebut, history, today=None if args.bebas_tanggal else _today())
+    res = validate(d, rules, cfg.jangan_disebut, history, today=None if args.bebas_tanggal else _today(),
+                   saringan=saringan_nama(cfg, d, rules))
     if args.json:
         print(json.dumps(res.as_dict(), indent=2, ensure_ascii=False))
     else:

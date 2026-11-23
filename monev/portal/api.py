@@ -22,6 +22,30 @@ class ApiError(RuntimeError):
         self.status = status
 
 
+class FormatBerubah(RuntimeError):
+    """Field wajib dari Monev hilang. Data tidak dipakai supaya libur atau status tidak terbaca keliru sebagai kosong."""
+
+
+# Field yang dipakai keputusan bot dan CLI. Dicek ada di respons Monev asli 19 Nov 2026 (catatan uji #57).
+WAJIB = {
+    "/users/me": ("id", "internship_start_date", "internship_end_date", "off_days"),
+    "/users/me/home": ("date", "is_holiday", "is_scheduled_off_day", "has_attendance", "active_internship"),
+    "/attendances": ("date", "status", "approval_status"),
+    "/daily-logs": ("date", "state"),
+    "/holidays": ("date",),
+}
+
+
+def wajib(path: str, data):
+    """Kembalikan `data` bila field wajib ada (untuk daftar: setiap baris), selain itu FormatBerubah."""
+    baris = data if isinstance(data, list) else [data]
+    for x in baris:
+        hilang = [k for k in WAJIB[path] if not isinstance(x, dict) or k not in x]
+        if hilang:
+            raise FormatBerubah(f"{path} tanpa field {', '.join(hilang)}")
+    return data
+
+
 def get(s: Session, path: str, params: dict | None = None):
     query = ""
     if params:
@@ -49,16 +73,21 @@ def _archive(day: str, att: dict, log: dict) -> None:
     (d / f"{day}.json").write_text(json.dumps(rec, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
+def log_tanggal(logs: list[dict], hari: str) -> dict:
+    """Laporan bertanggal `hari` saja. API bisa mengembalikan laporan hari lain walau diberi parameter `date`."""
+    return next((l for l in logs if (l.get("date") or "")[:10] == hari), {})
+
+
 def collect_status(s: Session) -> dict:
     """Ringkasan status hari ini. Tidak memuat token, cookie, atau koordinat."""
-    me = get(s, "/users/me")
-    home = get(s, "/users/me/home")
+    me = wajib("/users/me", get(s, "/users/me"))
+    home = wajib("/users/me/home", get(s, "/users/me/home"))
     pid = me.get("id")
     today = home.get("date") or date.today().isoformat()
     start = (me.get("internship_start_date") or "")[:10]
 
-    logs_today = get(s, "/daily-logs", {"participant_id": pid, "date": today, "limit": 10}) or []
-    att_today = get(s, "/attendances", {"participant_id": pid, "start_date": today, "end_date": today}) or []
+    logs_today = wajib("/daily-logs", get(s, "/daily-logs", {"participant_id": pid, "date": today, "limit": 10}) or [])
+    att_today = wajib("/attendances", get(s, "/attendances", {"participant_id": pid, "start_date": today, "end_date": today}) or [])
 
     revisions: list[dict] | None
     try:
@@ -70,7 +99,7 @@ def collect_status(s: Session) -> dict:
     except Exception:
         revisions = None  # bentuk query rentang belum terverifikasi
 
-    log = logs_today[0] if logs_today else {}
+    log = log_tanggal(logs_today, today)
     att = att_today[0] if att_today else {}
     if log:
         _archive(today, att, log)

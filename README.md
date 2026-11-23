@@ -18,7 +18,7 @@ flowchart TB
   end
   subgraph SUSUN["2. Menyusun draft"]
     direction LR
-    S["Sumber kerja<br/>commit, tiket, logtime,<br/>kalender, work records"] --> A["/monev<br/>aktivitas, pelajaran, kendala"] --> V["monev validate<br/>cek aturan Monev"]
+    S["Sumber kerja<br/>commit, tiket, logtime,<br/>kalender, work records"] --> A["/monev<br/>aktivitas, pelajaran, kendala"] --> V["monev validate<br/>cek aturan Monev dan nama klien"]
   end
   subgraph REVIEW["3. Review"]
     direction LR
@@ -41,7 +41,7 @@ Laporan tidak pernah terkirim tanpa balasan `kirim` darimu. Bot dan popup hanya 
 
 | Bagian | Fungsi | Wajib? |
 |---|---|---|
-| CLI `monev` | status, rekap, tulis dan validasi draft, kirim | ya |
+| CLI `monev` | status, rekap, tulis dan validasi draft, cek kesiapan bahan, skor kualitas draft, kirim | ya |
 | Extension Chrome | mengisi form Monev di Chrome-mu atas perintah CLI, supaya lokasi yang terkirim asli | ya, untuk kirim |
 | Skill `/monev` (Claude Code atau Hermes) | menyusun draft dari tanya-jawab, commit/PR GitHub-GitLab, MCP kantor (logtime, tiket, kalender), atau folder work records ([pilih jalur](docs/panduan/pasang.md#sumber-bahan-pilih-jalur)) | tidak |
 | Bot Telegram `monev bot` | pengingat jam kerja, notifikasi revisi/ditolak, rekap mingguan dan bulanan | tidak |
@@ -50,6 +50,10 @@ Laporan tidak pernah terkirim tanpa balasan `kirim` darimu. Bot dan popup hanya 
 
 Draft disusun dari sumber kerjamu, divalidasi terhadap aturan Monev, lalu ditampilkan utuh untuk direview.
 Tidak ada yang terkirim sebelum kamu membalas `kirim`. Panduan: [docs/panduan/pemakaian.md](docs/panduan/pemakaian.md).
+
+Draft yang menyebut nama klien atau proyek pribadi ditolak, sedangkan nama teknologi seperti Grafana dan GitLab tetap
+boleh. Logtime carry-over tidak dihitung sebagai kerja hari itu. Kerja di luar jam yang belum dilaporkan masuk ke
+laporan berikutnya dengan keterangan waktu yang jujur.
 
 | Review draft di Claude Code | Perintah CLI |
 |---|---|

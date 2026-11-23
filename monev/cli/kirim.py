@@ -60,7 +60,7 @@ def cmd_kirim(args) -> int:
     from ..kirim.host import diagnosa
     from ..laporan.draft import load
     from ..laporan.validasi import load_history, load_rules, validate
-    from .laporan import cmd_status
+    from .laporan import cmd_status, saringan_nama
 
     masalah = diagnosa()
     if masalah:
@@ -85,7 +85,7 @@ def cmd_kirim(args) -> int:
     cfg = load_config()
     rules = load_rules()
     history = load_history(data_dir() / "arsip", rules.get("kemiripan", {}).get("riwayat", 10), exclude_date=d.date)
-    res = validate(d, rules, cfg.jangan_disebut, history, today=_today())
+    res = validate(d, rules, cfg.jangan_disebut, history, today=_today(), saringan=saringan_nama(cfg, d, rules))
     if not res.ok:
         print("✗ Draft belum lolos validasi:")
         for e in res.errors:
@@ -117,11 +117,38 @@ def cmd_kirim(args) -> int:
     job = buat_job("isi", draft, mode)
     hasil = _tunggu_extension(job, args.timeout)
     code = _laporkan_hasil(hasil)
+    if mode == "kirim" and hasil and hasil.get("tahap") == "terkirim":
+        _hapus_draft(path, cfg)
     if hasil and hasil.get("tahap") in ("terkirim", "tidak_pasti"):
         print("\nVerifikasi lewat Monev (sesi CLI)...")
         args.json, args.headful, args.no_login = False, False, True
         cmd_status(args)
+        _sapu_draft(cfg)
     return code
+
+
+def _hapus_draft(path, cfg) -> None:
+    """Laporan sudah tersimpan di Monev, jadi draft lokalnya tidak diperlukan lagi."""
+    from ..otomasi.rapi import hapus_draft
+
+    try:
+        if hapus_draft(path, cfg.draft_dir):
+            print("  draft lokal dihapus")
+    except OSError as ex:
+        print(f"  ! draft lokal gagal dihapus: {ex}")
+
+
+def _sapu_draft(cfg) -> None:
+    """Hasil `tidak_pasti` yang ternyata masuk arsip dan draft lama ikut dibersihkan setelah verifikasi."""
+    from ..config import data_dir
+    from ..laporan.nilai import muat_arsip
+    from ..otomasi.rapi import sapu
+
+    try:
+        for nama in sapu(cfg.draft_dir, set(muat_arsip(data_dir() / "arsip")), _today()):
+            print(f"  draft lama dihapus: {nama}")
+    except OSError as ex:
+        print(f"  ! draft lama gagal dibersihkan: {ex}")
 
 
 def cmd_extension(args) -> int:

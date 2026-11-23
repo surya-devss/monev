@@ -114,10 +114,30 @@ async function ringkasHariIni(bolehBuka = true) {
   }
 }
 
+// Tanggal habis sesi Monev di Chrome ini (ms). Hanya expirationDate cookie yang dipakai; nilainya tidak disimpan.
+async function sesiSampai() {
+  try {
+    const c = await chrome.cookies.get({ url: "https://monev-api.maganghub.kemnaker.go.id", name: "monev_refresh_token" });
+    return c && c.expirationDate ? Math.round(c.expirationDate * 1000) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 async function segarkanStatus(bolehBuka = true) {
   const r = await ringkasHariIni(bolehBuka);
-  if (r.ok) await chrome.storage.local.set({ ringkas: { ...r, at: Date.now() }, sesi: { ok: true, at: Date.now() } });
-  else if (r.tahap === "login") await chrome.storage.local.set({ sesi: { ok: false, at: Date.now() } });
+  if (r.ok) {
+    const { versiWeb } = await chrome.storage.local.get("versiWeb");
+    await chrome.storage.local.set({ ringkas: { ...r, at: Date.now() },
+                                     sesi: { ok: true, at: Date.now(), sampai: await sesiSampai() } });
+    if (r.versi_web) {
+      await chrome.storage.local.set({ versiWeb: r.versi_web });
+      if (versiWeb && versiWeb !== r.versi_web) {   // situs di-deploy ulang sejak pembacaan terakhir
+        const P = ((await ambilTeks()) || {}).pesan;
+        if (P && P.web) notif("web", P.web.judul, `${P.web.isi}\n${isi(P.web.tindakan, {})}`, { tetap: true });
+      }
+    }
+  } else if (r.tahap === "login") await chrome.storage.local.set({ sesi: { ok: false, at: Date.now() } });
   return r;
 }
 
@@ -271,6 +291,13 @@ async function jalankanPengingat(nama, { uji = false, urutan = "pertama" } = {})
   const data = { nama: r.nama, hari: tglHari(r.tanggal), tanggal: tglPendek(r.tanggal), batas: BATAS,
                  sisa: String(Math.max(1, 24 - new Date().getHours())) };
   if (nama === "pagi") {
+    const { sesi } = await chrome.storage.local.get("sesi");
+    const sisa = sesi && sesi.sampai ? Math.floor((sesi.sampai - Date.now()) / 86400000) : null;
+    if (sisa !== null && sisa <= 3 && P.login.hampir_judul) {   // sama dengan peringatan sesi bot (≤ 3 hari)
+      const t = new Date(sesi.sampai), iso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+      notif("login", isi(P.login.hampir_judul, { kapan: sisa <= 0 ? "hari ini" : `dalam ${sisa} hari`, tanggal: tglPendek(iso) }),
+        isi(P.login.hampir_isi, data), { tombol: ["Buka Monev"] });
+    }
     const rev = (r.perlu_revisi || []).map((x) => tglPendek(x.date)).join(", ");
     const baris = [[r.posisi, r.perusahaan].filter(Boolean).join(" di "), `${data.hari}, hari kerja`,
       r.sudah_isi ? P.pagi.sudah : P.pagi.belum, rev && P.pagi.revisi.replace("{tanggal}", rev)];

@@ -95,6 +95,7 @@ sequenceDiagram
   U->>G: /monev  (atau monev draft)
   G->>C: monev status --json
   C->>M: GET /users/me/home (Chrome A)
+  G->>C: monev sumber baca, monev sumber siap
   G->>G: susun draft dari sumber
   G->>C: monev validate draft
   G-->>U: tampilkan draft
@@ -109,13 +110,39 @@ sequenceDiagram
 | Langkah | Perintah | Berhenti bila |
 |---|---|---|
 | 1. status | `monev status --json` | libur, sudah isi, atau ada revisi (ditawarkan alur revisi) |
-| 2. bahan | sumber yang tersedia, [lihat bawah](#sumber-bahan-draft) | |
-| 3. draft | `<draft_dir>/<tanggal>.json` lalu `monev validate` | ada ✗ (diperbaiki dulu) |
+| 2. bahan | sumber yang tersedia ([lihat bawah](#sumber-bahan-draft)), lalu `monev sumber siap` | `kosong`: lanjut lewat tanya-jawab, tidak mengarang |
+| 3. draft | `<draft_dir>/<tanggal>.json` lalu `monev validate` (aturan Monev + saringan nama) | ada ✗ (diperbaiki dulu) |
 | 4. review | pemilik membaca draft | ada koreksi (kembali ke 3) |
 | 5. kirim | hanya setelah pemilik membalas `kirim` | |
 | 6. verifikasi | `monev status` → sudah isi, panjang sama dengan draft, arsip tersimpan | hasil tidak pasti: cek Riwayat, **jangan kirim ulang** |
 
 Instruksi lengkap untuk agent: [`plugin/skills/monev/SKILL.md`](../../plugin/skills/monev/SKILL.md).
+
+### Pengaman draft
+
+Pembagiannya: Python menghitung dan memeriksa, agent menulis dan menimbang.
+
+| Pengaman | File | Cara kerja |
+|---|---|---|
+| Kesiapan bahan | `monev/sumber/kesiapan.py` | `siap`, `tipis`, atau `kosong` dari jumlah aktivitas dan logtime; repo work records hanya dibaca |
+| Saringan nama | `monev/laporan/nama.py` | nama proyek dan klien dikumpulkan dari work records dan `nama_sumber` di draft, lalu ditolak bila tertulis; istilah umum ada di `[nama]` pada `aturan.toml` |
+| Proyek pribadi | `[laporan] lewati_proyek` | dilewati saat membaca bahan dan ditolak bila dipakai sebagai tag laporan |
+| Carry-over | `monev/sumber/catatan.py` | baris `Daily time log` bertanda `carry-over dari …` bukan kerja hari itu |
+| Kerja di luar jam | `monev/sumber/catatan.py`, `monev/laporan/nilai.py` | kerja sejak laporan terakhir yang belum tertulis di arsip masuk laporan berikutnya dengan waktu yang jujur |
+| Skor kualitas | `monev/laporan/nilai.py` | `monev eval` membandingkan draft latihan dengan arsip; skor dari kegiatan (70%) dan pembelajaran (30%), kendala hanya ditampilkan |
+
+### Draft terjadwal
+
+```
+timer systemd milik user (Persistent=true)
+  → monev jadwal jalan: kunci proses, baca status, bersihkan draft lama, cek bahan
+  → claude -p + skill /monev otomatis: izin baca saja, hanya bisa menulis ke folder kerja sementara
+  → Python memvalidasi ulang, memaksa approved: false, lalu menyimpan <draft_dir>/<tanggal>.json
+  → pesan singkat ke Telegram, tanpa isi laporan
+```
+
+Komunikasinya satu arah dari laptop ke Telegram. Bot di server dan extension tidak berubah. `monev kirim` tidak ada di
+daftar izin proses ini, dan tool MCP harus ditulis lengkap di `[jadwal] alat_mcp`.
 
 ## Kirim lewat extension
 
@@ -183,7 +210,7 @@ Semua dibaca saja (read-only). Detail cara mengambil: [`plugin/skills/monev/refe
 | A | Tanya-jawab | selalu | agent / `monev draft` | melengkapi yang kurang |
 | B | Git: commit, PR/MR, review | `git_penyedia` terisi, `gh`/`glab` login | `monev bukti` | bukti hasil |
 | C | MCP kantor: logtime, tiket, aktivitas git, kalender | `mcp_awalan_tool` terisi dan tool-nya ada di sesi agent | agent | kerangka aktivitas, judul pekerjaan, **kandidat** acara |
-| D | Work records | `workrecords_ada: true` (folder ditemukan `monev sumber cari`) | `monev sumber baca` | aktivitas, pembelajaran, kendala |
+| D | Work records | `workrecords_ada: true` (folder ditemukan `monev sumber cari`) | `monev sumber baca` | aktivitas, pembelajaran, kendala, carry-over, kerja di luar jam |
 
 Status semua jalur: `monev doctor --tanpa-sesi [--json]`. monev tidak tahu nama alat penghasil bahan; titik temunya hanya kontrak format dan config lokal:
 [`kontrak-sumber.md`](kontrak-sumber.md).
@@ -196,18 +223,20 @@ monev/
 │   ├── __init__.py       parser argparse + `main()` (entry point `monev`)
 │   ├── _umum.py          kode keluar, tanya-jawab terminal, config otomatis, buka sesi Chrome A / login
 │   ├── akun.py           init, config, login, logout, doctor
-│   ├── laporan.py        status, rekap, draft, validate
+│   ├── laporan.py        status, rekap, draft, validate, eval
 │   ├── kirim.py          kirim, extension
 │   ├── bot.py            bot
 │   ├── agen.py           hermes
-│   └── sumber.py         sumber cari, sumber baca, bukti
+│   ├── jadwal.py         jadwal pasang, status, lepas, jalan
+│   └── sumber.py         sumber cari, sumber baca, sumber siap, bukti
 ├── config.py           lokasi config/data, baca & tulis config.toml, state login
 ├── teks/               teks bot dan notifikasi extension
 │   └── bawaan.toml       teks bawaan; ditimpa sebagian oleh `[pesan]` di config
 ├── sumber/             sumber bahan yang bisa dibaca CLI (read-only)
 │   ├── catatan.py        temukan & ringkas folder work records dari isinya
 │   ├── git.py            aktivitas Git milik user lewat gh/glab, dibersihkan
-│   └── jalur.py          status jalur A–D untuk doctor dan /monev setup
+│   ├── jalur.py          status jalur A–D untuk doctor dan /monev setup
+│   └── kesiapan.py       cek kesiapan bahan satu tanggal dan kondisi repo work records
 ├── agen/               pemasang skill ke agent
 │   └── hermes.py         pasang/lepas skill /monev di Hermes
 ├── portal/             akses situs Monev lewat Chrome A (read-only)
@@ -217,23 +246,29 @@ monev/
 ├── laporan/            isi laporan
 │   ├── draft.py          template, baca draft .json/.md, hitung panjang seperti JavaScript
 │   ├── validasi.py       cek draft terhadap aturan + kemiripan dengan arsip
-│   └── aturan.toml       batas panjang, pola terlarang & peringatan, ambang kemiripan
+│   ├── nama.py           saringan nama proyek dan klien yang dikumpulkan dari sumber
+│   ├── nilai.py          skor draft terhadap laporan terkirim untuk `monev eval`
+│   └── aturan.toml       batas panjang, pola terlarang & peringatan, istilah umum, ambang kemiripan
 ├── kirim/              CLI ↔ extension
 │   ├── antrian.py        berkas pekerjaan dan hasil
 │   └── host.py           monev-native-host, pemasangan manifest, diagnosa extension
+├── otomasi/            draft terjadwal di laptop
+│   ├── jadwal.py         unit dan timer systemd milik user
+│   ├── susun.py          keputusan proses, batas izin agent, kunci proses, catatan pesan
+│   └── rapi.py           hapus draft yang sudah terkirim atau kedaluwarsa
 └── bot/                bot Telegram (lihat tabel di bagian Bot Telegram)
 
 extension/              Chrome MV3: background.js (pekerjaan, pengingat), isi-form.js (isi form), popup, options (Pengaturan)
 plugin/                 plugin Claude Code: skills/monev (/monev), skills/status (/monev:status)
 deploy/                 Dockerfile, docker-compose.yml
 scripts/                alat pemelihara repo (cek-bocor.sh), tidak dipasang ke pemakai
-tests/                  unit test: test_config, test_sumber, test_laporan, test_rekap, test_kirim, test_bot, test_hermes, test_teks, test_dokumen
+tests/                  unit test: test_config, test_sumber, test_laporan, test_nilai, test_rekap, test_kirim, test_otomasi, test_bot, test_hermes, test_teks, test_dokumen
 config.example.toml     isi config bawaan (sama dengan yang dibuat `monev`, dicek tes)
 .env.example            kunci bot Telegram (kosong)
 ```
 
 Aturan ketergantungan: `cli/` boleh memakai semua paket; `bot/` memakai `portal/` dan `teks/`; `kirim/` memakai
-`teks/`; `portal/`, `laporan/`, `kirim/`, `agen/`, dan `sumber/` tidak saling memakai (hanya `config.py`;
+`teks/`; `otomasi/` hanya memakai pustaka bawaan Python; `portal/`, `laporan/`, `kirim/`, `agen/`, dan `sumber/` tidak saling memakai (hanya `config.py`;
 `sumber/git.py` memakai pola terlarang dari `laporan/aturan.toml` lewat argumen). Paket baru di `monev/` ikut terpasang otomatis
 (`pyproject.toml` mencari `monev*`), termasuk di image bot.
 
@@ -244,4 +279,5 @@ Aturan ketergantungan: `cli/` boleh memakai semua paket; `bot/` memakai `portal/
 - Token bot Telegram hanya di `.env` (gitignored) atau secret CI; tidak pernah dicetak.
 - Kirim hanya untuk draft yang disetujui pemilik; tidak pernah memilih "Tidak Hadir Tanpa Keterangan".
 - Lokasi selalu asli dari Chrome pemilik; koordinat tidak pernah dibuat.
-- Isi laporan dicek terhadap data terlarang (IP, URL, nomor tiket, path, email, token, nama di `jangan_disebut`).
+- Isi laporan dicek terhadap data terlarang (IP, URL, nomor tiket, path, email, token, nama di `jangan_disebut`) dan
+  nama proyek atau klien yang dikumpulkan dari sumber.

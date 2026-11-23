@@ -25,7 +25,7 @@ Tool sebuah fungsi menjawab "belum terhubung" atau kosong → lewati fungsi itu 
 Belum ada entri logtime untuk D → pakai kalender + aktivitas git + work records; sebutkan di keraguan "logtime hari ini belum ada".
 
 **Rutinitas**: blok rutin harian (doa pagi, daily meeting, sesi magang rutin, rapat
-mingguan) yang tercatat di logtime **dan** kalender pada D → masuk draft sebagai satu butir "Mengikuti kegiatan rutin: …"
+mingguan) yang tercatat di logtime **dan** kalender pada D → masuk draft sebagai satu butir "Mengikuti kegiatan rutin berupa …"
 dan disebut di keraguan ("hapus bila tidak ikut"). Tetap **ditanyakan dulu** (checklist) bila: hanya ada di salah satu
 sumber, `hari_pertama`, atau hari itu ada acara khusus seharian (onboarding, pelatihan, kunjungan): uji 2026-11-16
 mencatat "sesi magang rutin" di kalender & logtime padahal hari itu onboarding.
@@ -34,9 +34,11 @@ mencatat "sesi magang rutin" di kalender & logtime padahal hari itu onboarding.
 `monev config --json`; `--json` hanya memberi jumlahnya) → lewati sejak mengumpulkan bahan, bukan menunggu ditolak `monev validate`. Sebutkan singkat di sumber
 ("N aktivitas dilewati: jangan_disebut"). Pengecualian sekali saja cukup lewat koreksi saat review.
 
-**Logtime carry-over**: entri logtime hari D yang di work record ditandai *carry-over* dari tanggal lain (kerja hari
-lain yang baru dicatat hari ini) **bukan** aktivitas D → jangan masukkan; sebutkan di keraguan. Yang dianggap bukti:
-entri logtime berlabel proyek (bukan carry-over), commit/MR, baris work record, atau konfirmasi user.
+**Nama dari sumber**: catat nama proyek, klien, aplikasi, dan grup repo yang terbaca ke `nama_sumber` di draft. Di teks laporan nama itu ditulis umum. Proyek di `lewati_proyek` (dari `monev config --json`) dilewati seluruhnya.
+
+**Logtime carry-over**: entri logtime hari D yang cocok dengan `pekerjaan[].carry_over` di `monev sumber baca` adalah kerja hari lain → **bukan** aktivitas D dan tidak dihitung di `--logtime`. Yang dianggap bukti aktivitas D: entri logtime berlabel proyek (bukan carry-over), commit/MR, baris work record, atau konfirmasi user.
+
+**Kerja di luar jam yang belum dilaporkan** (`luar_jam` di `monev sumber baca`): kerja malam, akhir pekan, atau hari libur sebelum D yang belum tertulis di laporan mana pun → **masukkan ke draft D** (gabungkan baris yang sepekerjaan jadi satu butir), selalu dengan waktu yang jujur: `[Label] Melanjutkan … yang dikerjakan di luar jam kerja pada <malam sebelumnya / akhir pekan>.` Jangan menulisnya seolah dikerjakan pada jam kerja hari D, dan sebutkan butir ini di keraguan ("hapus bila tidak ingin dilaporkan").
 
 ## 2. Git (bila `git_penyedia` tidak kosong)
 
@@ -60,7 +62,7 @@ Folder `workrecords_dir`; lewati folder di `lewati_folder` dan semua folder bera
 monev sumber baca --tanggal D --json
 ```
 
-Per pekerjaan: `judul`, `proyek`, `status`, `aktivitas` (baris *Daily activity log* hari D saja, bukan tabel lain seperti
+Per pekerjaan: `judul`, `proyek`, `client` (opsional), `status`, `aktivitas` (baris *Daily activity log* hari D saja, bukan tabel lain seperti
 *Daily time log*: kegiatan · bukti · blocker) dan `pembelajaran` (baris `Decision`/`Pitfall`/`Observasi` bertanggal D).
 Jangan grep file sendiri: baris tanggal juga muncul di tabel lain.
 
@@ -69,7 +71,7 @@ Jangan grep file sendiri: baris tanggal juga muncul di tabel lain.
 - Kendala: `aktivitas[].blocker`, `status: blocked`, kata "menunggu", "gagal", "belum"; tanda *carry-over* di kolom
   mana pun = kerja tanggal lain (lihat aturan logtime carry-over di atas).
 - Judul pekerjaan: `judul` (buang nomor tiket).
-- Kerja di luar jam: baris D jam 00.00–04.59 ikut D. Bila D hari kerja setelah libur, baris tanggal libur sebelumnya (yang belum pernah dilaporkan, cek arsip `~/.local/share/monev/arsip/`) boleh masuk sebagai "melanjutkan …".
+- Kerja di luar jam: baris D jam 00.00–04.59 ikut D. Kerja sebelum D yang belum dilaporkan ada di `luar_jam` (aturannya di atas).
 
 ## 4. Checklist / cerita (selalu tersedia)
 

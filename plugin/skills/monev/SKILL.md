@@ -4,7 +4,7 @@ description: "Laporan harian Monev MagangHub: cek status, susun draft dari sumbe
 version: 0.2.0
 author: monev contributors
 license: MIT
-argument-hint: "[setup | status | latihan [YYYY-MM-DD] | revisi | izin | nilai]"
+argument-hint: "[setup | status | latihan [YYYY-MM-DD] | otomatis YYYY-MM-DD FILE | revisi | izin | nilai]"
 ---
 
 Skill ini dipakai Claude Code (plugin `monev`) dan Hermes (bundle `/monev`); semua aksi lewat CLI `monev`, jadi langkahnya sama di keduanya. Bagian bertanda *(Claude Code)* dilewati di agent lain.
@@ -21,6 +21,8 @@ Argumen `nilai` → isi nilai perusahaan untuk pesan "fokus hari ini" (bot & ext
 5. `monev config` → baris *nilai* terisi. Ingatkan: bot di server membaca config di servernya sendiri (lihat `docs/panduan/bot-telegram.md`); extension mengambil nilai lewat `monev-native-host` saat notifikasi fokus berikutnya.
 
 Argumen `latihan [tanggal]` → **mode latihan**: jalankan langkah 1–4 untuk tanggal itu (default hari ini) walaupun laporan sudah terisi atau hari libur, tulis draft ke `<draft_dir>/latihan-<D>.json`, validasi dengan `monev validate --bebas-tanggal`, tampilkan draft + sumber + keraguan. **Langkah 5 (kirim) tidak pernah dijalankan** di mode ini, walaupun user membalas `kirim`; sarankan `/monev` biasa di hari kerja berikutnya. Di akhir, tampilkan juga sumber mana yang terdeteksi/terpakai dan apa yang kurang — untuk menilai kualitas skill.
+
+Argumen `otomatis <D> <FILE>` → **mode draft terjadwal**, dipanggil `monev jadwal jalan` tanpa ada orang yang menjawab. Lewati langkah 0–1, jalankan langkah 2–3 untuk tanggal D, tulis draft hanya ke `FILE`, validasi dengan `monev validate FILE`, lalu berhenti. **Jangan bertanya dan jangan pernah menjalankan langkah 4–6.** Kandidat yang biasanya perlu konfirmasi tidak dimasukkan ke draft. Hal yang biasanya ditanyakan ditulis di field `"keraguan": ["…"]`. Peringatan (!) dari `monev validate` diperbaiki dulu, yang masih tersisa ditulis di `keraguan`. Bahan `kosong` atau draft tidak bisa lolos validasi → berhenti tanpa menulis `FILE`.
 
 # /monev — laporan harian Monev MagangHub
 
@@ -56,7 +58,9 @@ monev status --json --no-login
 - `perlu_revisi` tidak kosong → tawarkan alur revisi (bagian Revisi) sebelum laporan hari ini.
 - Catat `tanggal` (= D) dan `hari_pertama`.
 
-Lalu `monev config --json` → `posisi`, `perusahaan`, `rutinitas`, `workrecords_dir`, `workrecords_ada`, `mcp_awalan_tool`, `git_penyedia`, `draft_dir`.
+Lalu `monev config --json` → `posisi`, `perusahaan`, `rutinitas`, `workrecords_dir`, `workrecords_ada`, `mcp_awalan_tool`, `git_penyedia`, `lewati_proyek`, `draft_dir`.
+
+Bila `<draft_dir>/<D>.json` sudah ada, jangan menyusun dari awal: jalankan `monev validate <file>`, lalu lanjut ke langkah 4 dan tampilkan juga isi `keraguan`. Susun ulang dari langkah 2 hanya bila user memintanya.
 
 ### 2. Kumpulkan bahan
 Deteksi sumber yang tersedia dan pakai **semuanya**, read-only (detail: `references/sources.md`):
@@ -70,6 +74,12 @@ Deteksi sumber yang tersedia dan pakai **semuanya**, read-only (detail: `referen
 
 Tidak ada satu pun sumber otomatis → setelah laporan selesai, sarankan sekali `/monev setup` untuk menyambungkan sumber.
 
+Setelah bahan terkumpul, jalankan `monev sumber siap --tanggal D --json` (tambah `--logtime N` bila logtime dipakai, N = jumlah entri hari D). `tipis` → lanjut dan sebut kekurangannya di keraguan. `kosong` → jangan mengarang, pakai checklist/tanya-jawab. Isi `peringatan` disebut di keraguan.
+
+Proyek di `lewati_proyek` tidak dipakai sebagai bahan, termasuk entri logtime, tiket, dan aktivitas git-nya.
+
+`luar_jam` dari `monev sumber baca` dimasukkan ke draft sebagai butir "melanjutkan … yang dikerjakan di luar jam kerja pada …" dan disebut di keraguan. `carry_over` bukan kerja hari D (detail: `references/sources.md`).
+
 Jenis hari menentukan pertanyaan: `hari_pertama` → kandidat onboarding / pengenalan tim / mentoring / setup akun; hari setelah libur → "melanjutkan apa?"; hari biasa → rutinitas dari config + kalender.
 
 Bila bahan sudah cukup dari sumber otomatis, **jangan wawancara**; tanyakan paling banyak 1–2 hal yang benar-benar kurang (mis. aktivitas tanpa hasil). Bila tidak ada sumber otomatis: tampilkan checklist kandidat + satu pertanyaan wajib "Pekerjaan utama hari ini apa, dan hasilnya apa?".
@@ -79,8 +89,11 @@ Ikuti `references/writing-guide.md`. Tulis draft JSON ke `<draft_dir>/<D>.json`:
 
 ```json
 {"date": "D", "status": "PRESENT", "activity_log": "…", "lesson_learned": "…", "obstacles": "…",
- "sources": ["logtime:…", "tiket:…", "git:…", "kalender:…", "record:…", "jawaban:…"], "approved": false}
+ "sources": ["logtime:…", "tiket:…", "git:…", "kalender:…", "record:…", "jawaban:…"],
+ "nama_sumber": ["…"], "approved": false}
 ```
+
+`nama_sumber`: semua nama proyek, klien, aplikasi, dan grup repo yang terbaca dari logtime, tiket, dan aktivitas git. `monev validate` menolak draft yang menyebut nama itu, jadi di teks laporan tulis secara umum (mis. "aplikasi klien"). Nama teknologi dan standar (Grafana, Wazuh, GitLab, ISO 27001) tetap boleh disebut.
 
 Lalu `monev validate <file>`. Ada ✗ → perbaiki teks, ulangi sampai lolos. Peringatan (!) → perbaiki bila masuk akal, sisanya sebutkan ke user.
 
@@ -102,7 +115,7 @@ Ubah `"approved": true` di file draft. Pengirim **hanya extension monev**; agent
 Extension menangani ketiga jenis draft: hadir, izin (`"status": "ON_LEAVE"`), dan perbaikan dari mentor (`"revisi": true`).
 
 ### 6. Verifikasi
-`monev status --no-login` → harus `sudah isi`, kehadiran `PRESENT/SUBMITTED`, log `SUBMITTED`, panjang sama dengan draft (arsip tersimpan otomatis). Laporkan hasil ke user. Gagal/tidak yakin → cek Riwayat; **jangan kirim ulang** tanpa bukti belum masuk.
+`monev status --no-login` → harus `sudah isi`, kehadiran `PRESENT/SUBMITTED`, log `SUBMITTED`, panjang sama dengan draft (arsip tersimpan otomatis). `monev kirim` menghapus file draft setelah laporan terkirim, jadi jangan mencarinya lagi. Laporkan hasil ke user. Gagal/tidak yakin → cek Riwayat; **jangan kirim ulang** tanpa bukti belum masuk.
 
 ## Revisi dari mentor
 `perlu_revisi` berisi tanggal + catatan mentor. Tampilkan catatan mentor dan isi lama (lihat di Riwayat). Susun perbaikan dari sumber tanggal itu, tulis draft dengan `"date": "<tanggal revisi>", "revisi": true` + tiga field → `monev validate` (tanggal lampau diterima untuk revisi) → review → `kirim` → `monev kirim <file>` (extension membuka panel "Perbaiki laporan" tanggal itu, mengisi, mengirim; status jadi `REVISION_SUBMITTED`). Kehadiran tidak berubah dan lokasi tidak dikirim. Pada revisi pertama lewat extension, jalankan `monev kirim --uji <file>` dulu.
