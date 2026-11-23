@@ -4,6 +4,8 @@ Perubahan yang terasa oleh pemakai.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-23
+
 ### Ditambahkan
 - Saringan nama di `monev validate` dan `monev kirim`: nama proyek dan klien dikumpulkan dari sumber
   lalu ditolak bila tertulis di laporan, sedangkan nama teknologi dan standar tetap boleh disebut.

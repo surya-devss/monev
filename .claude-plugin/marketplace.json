@@ -11,7 +11,7 @@
       "name": "monev",
       "source": "./plugin",
       "description": "Susun, validasi, dan kirim laporan harian Monev MagangHub dengan review sebelum kirim.",
-      "version": "0.2.0"
+      "version": "0.3.0"
     }
   ]
 }
