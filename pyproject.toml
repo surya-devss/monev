@@ -1,6 +1,6 @@
 [project]
 name = "monev"
-version = "0.2.0"
+version = "0.3.0"
 description = "Asisten laporan harian Monev MagangHub (CLI)"
 requires-python = ">=3.11"
 dependencies = ["playwright>=1.47"]

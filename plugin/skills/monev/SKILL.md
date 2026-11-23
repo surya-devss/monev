@@ -1,7 +1,7 @@
 ---
 name: monev
 description: "Laporan harian Monev MagangHub: cek status, susun draft dari sumber yang tersedia, validasi, minta review, lalu kirim lewat extension monev (monev kirim) setelah user membalas `kirim`. Use when the user mentions: monev, maganghub, laporan harian magang, isi laporan hari ini, presensi magang, revisi mentor monev, izin monev."
-version: 0.2.0
+version: 0.3.0
 author: monev contributors
 license: MIT
 argument-hint: "[setup | status | latihan [YYYY-MM-DD] | otomatis YYYY-MM-DD FILE | revisi | izin | nilai]"

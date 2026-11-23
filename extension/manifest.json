@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Monev Kirim",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Isi dan kirim laporan harian Monev MagangHub dari draft yang sudah disetujui lewat CLI monev. Tanpa menyimpan token atau password.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAolAmX1T+/855ArOuo5aT1qRxhWiUK/gD2IdX57oG0pwCc0wdDkQQE+qCQUuwgiE4gId4QRaIe9lDwJ3jT0AlqIZl9kkZhDpy/4q/fqGcEFF9ZOmuk0ardGvdjUwUSRJ+vUT4nFSFPfJDzgiPtLByksF7dEf7g4PrcUHHxJsggfVbbsM8ZmuTbeMG3PV2J4XOpBDeR72wfbnfVzPsN2RjlqFSfQx/SeDxxc4/d3j384N+tInB2cDXgwvfAbCdZsF6VxEs3XqrIrvqXebfkKhXCeCOiUJSiBZqVYvtLEZWEFuPaf/a9Ru37KUQeB3dGWKV2o7K5Or1PkrhjLGDmOvEGQIDAQAB",
   "permissions": [
