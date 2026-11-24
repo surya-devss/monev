@@ -28,7 +28,20 @@ PERINTAH = {"init", "login", "logout", "doctor", "status", "rekap", "kirim", "ex
             "config", "draft", "validate", "eval", "sumber", "bukti", "jadwal"}
 
 
+def stdio_utf8() -> None:
+    """Keluaran CLI selalu UTF-8.
+
+    Di Windows, keluaran yang di-pipe atau ditangkap agent (Claude Code, Hermes) memakai encoding lokal seperti cp1252,
+    yang tidak punya ✓ ✗ → sehingga print gagal dengan UnicodeEncodeError.
+    """
+    for s in (sys.stdout, sys.stderr):
+        enc = (getattr(s, "encoding", None) or "").lower().replace("-", "").replace("_", "")
+        if enc != "utf8" and hasattr(s, "reconfigure"):
+            s.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main(argv: list[str] | None = None) -> int:
+    stdio_utf8()
     ap = argparse.ArgumentParser(prog="monev", description="Asisten laporan harian Monev MagangHub")
     ap.add_argument("--version", action="version", version=f"monev {__version__}")
     sub = ap.add_subparsers(dest="cmd", metavar="{status,rekap,kirim,jadwal,bot,extension,hermes,doctor,login,logout,config,draft,validate,eval,init,sumber,bukti}",

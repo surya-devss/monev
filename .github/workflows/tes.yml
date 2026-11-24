@@ -10,8 +10,12 @@ permissions:
 
 jobs:
   test:
-    name: Unit test
-    runs-on: ubuntu-latest
+    name: Unit test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -19,3 +23,51 @@ jobs:
           python-version: "3.12"
       - run: pip install -e .
       - run: python -m unittest discover -s tests
+
+  windows-pasang:
+    name: Pasang di Windows (uv tool, extension install, hermes install)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install uv
+      - run: uv tool install -e .
+      - name: Tambah folder uv tool ke PATH
+        run: uv tool dir --bin | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+      - run: monev --version
+      - run: monev extension install
+      - name: Cek registry dan manifest jembatan Native Messaging
+        run: |
+          $kunci = 'HKCU:\Software\Google\Chrome\NativeMessagingHosts\monev.maganghub.kirim'
+          $manifest = (Get-ItemProperty -Path $kunci).'(default)'
+          if (-not (Test-Path $manifest)) { throw "manifest tidak ada: $manifest" }
+          $isi = Get-Content $manifest -Raw | ConvertFrom-Json
+          if (-not (Test-Path $isi.path)) { throw "monev-native-host tidak ada: $($isi.path)" }
+          Write-Host "registry -> $manifest -> $($isi.path)"
+      - name: Native host menjawab protokol (pesan tidak dikenal)
+        run: |
+          $manifest = (Get-ItemProperty 'HKCU:\Software\Google\Chrome\NativeMessagingHosts\monev.maganghub.kirim').'(default)'
+          $exe = (Get-Content $manifest -Raw | ConvertFrom-Json).path
+          $body = [Text.Encoding]::UTF8.GetBytes('{"type":"uji"}')
+          $psi = New-Object Diagnostics.ProcessStartInfo $exe
+          $psi.RedirectStandardInput = $true; $psi.RedirectStandardOutput = $true; $psi.UseShellExecute = $false
+          $p = [Diagnostics.Process]::Start($psi)
+          $in = $p.StandardInput.BaseStream
+          $in.Write([BitConverter]::GetBytes([uint32]$body.Length), 0, 4); $in.Write($body, 0, $body.Length); $in.Close()
+          $out = $p.StandardOutput.BaseStream
+          $len = New-Object byte[] 4; [void]$out.Read($len, 0, 4)
+          $n = [BitConverter]::ToUInt32($len, 0); $buf = New-Object byte[] $n
+          $got = 0; while ($got -lt $n) { $got += $out.Read($buf, $got, $n - $got) }
+          $jawab = [Text.Encoding]::UTF8.GetString($buf); Write-Host $jawab
+          if ($jawab -notmatch 'pesan tidak dikenal') { throw "jawaban host tidak sesuai" }
+      - name: Pasang skill /monev ke profile Hermes
+        run: |
+          New-Item -ItemType Directory -Force "$HOME\.hermes" | Out-Null
+          monev hermes install
+          if (-not (Test-Path "$HOME\.hermes\skills\maganghub\monev\SKILL.md")) { throw "skill tidak terpasang" }
+          if (-not (Test-Path "$HOME\.hermes\skill-bundles\monev.yaml")) { throw "bundle /monev tidak ada" }

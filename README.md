@@ -6,6 +6,8 @@ Membantu mengecek, menulis, dan mengirim laporan harian di
 [Monev MagangHub](https://monev.maganghub.kemnaker.go.id) dengan **review sebelum kirim** dan **lokasi asli**,
 plus pengingat dan rekap kehadiran lewat Telegram.
 
+Jalan di **Linux** dan **Windows**. Tersedia sebagai skill `/monev` di **Claude Code** dan **Hermes Agent**.
+
 Email dan password Monev tidak disimpan, login selalu kamu ketik sendiri. Sesi login hanya ada di profil Chrome.
 
 ## Alurnya

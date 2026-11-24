@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import fcntl
 import json
+import sys
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -34,6 +34,8 @@ def alat_baca(nama: list[str]) -> list[str]:
 
 def perintah_claude(repo: Path, config: Path, kerja: Path, alat_mcp: list[str]) -> list[str]:
     """`dontAsk` menolak semua yang tidak tertulis di sini, termasuk `monev kirim` dan tool MCP penulis."""
+    # Aturan izin Claude Code memakai garis miring maju, juga di Windows.
+    repo, config, kerja = repo.as_posix(), config.as_posix(), kerja.as_posix()
     izin = ["Skill", "ToolSearch",
             f"Read(/{repo}/plugin/**)", f"Read(/{repo}/docs/teknis/kontrak-sumber.md)", f"Read(/{config})",
             "Read(~/.claude/plugins/**)", f"Read(/{kerja}/**)", f"Edit(/{kerja}/**)",
@@ -55,8 +57,15 @@ def kunci(path: Path):
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as f:
         try:
-            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
+            if sys.platform.startswith("win"):
+                import msvcrt  # noqa: PLC0415
+
+                msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl  # noqa: PLC0415
+
+                fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:   # BlockingIOError (Linux/macOS) atau PermissionError (Windows): proses lain memegang kunci
             yield False
             return
         yield True
