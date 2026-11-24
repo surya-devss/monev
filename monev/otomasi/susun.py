@@ -34,6 +34,8 @@ def alat_baca(nama: list[str]) -> list[str]:
 
 def perintah_claude(repo: Path, config: Path, kerja: Path, alat_mcp: list[str]) -> list[str]:
     """`dontAsk` menolak semua yang tidak tertulis di sini, termasuk `monev kirim` dan tool MCP penulis."""
+    # Aturan izin Claude Code memakai garis miring maju, juga di Windows.
+    repo, config, kerja = repo.as_posix(), config.as_posix(), kerja.as_posix()
     izin = ["Skill", "ToolSearch",
             f"Read(/{repo}/plugin/**)", f"Read(/{repo}/docs/teknis/kontrak-sumber.md)", f"Read(/{config})",
             "Read(~/.claude/plugins/**)", f"Read(/{kerja}/**)", f"Edit(/{kerja}/**)",
