@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import fcntl
 import json
+import sys
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -55,8 +55,15 @@ def kunci(path: Path):
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as f:
         try:
-            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
+            if sys.platform.startswith("win"):
+                import msvcrt  # noqa: PLC0415
+
+                msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl  # noqa: PLC0415
+
+                fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:   # BlockingIOError (Linux/macOS) atau PermissionError (Windows): proses lain memegang kunci
             yield False
             return
         yield True

@@ -147,6 +147,82 @@ class TestDiagnosa(unittest.TestCase):
         self.assertEqual(host.diagnosa(), [])
 
 
+class _WinregPalsu:
+    """Pengganti modul `winreg` supaya jalur Windows bisa diuji di Linux."""
+
+    HKEY_CURRENT_USER = "HKCU"
+    KEY_WRITE = 0
+    REG_SZ = 1
+
+    def __init__(self):
+        self.data = {}
+
+    class _Kunci:
+        def __init__(self, reg, path):
+            self.reg, self.path = reg, path
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def CreateKeyEx(self, root, path, res, akses):
+        self.data.setdefault(path, None)
+        return self._Kunci(self, path)
+
+    def OpenKey(self, root, path):
+        if path not in self.data:
+            raise FileNotFoundError(path)
+        return self._Kunci(self, path)
+
+    def SetValueEx(self, k, nama, res, jenis, nilai):
+        self.data[k.path] = nilai
+
+    def QueryValueEx(self, k, nama):
+        return self.data[k.path], self.REG_SZ
+
+
+class TestWindows(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.reg = _WinregPalsu()
+        self.patches = [
+            mock.patch.object(host.sys, "platform", "win32"),
+            mock.patch.dict(os.environ, {"LOCALAPPDATA": self.tmp.name}),
+            mock.patch.dict("sys.modules", {"winreg": self.reg}),
+            mock.patch.object(host, "cari_host_exe", return_value=r"C:\uv\bin\monev-native-host.exe"),
+            mock.patch.object(host, "chrome_berjalan", return_value=True),
+        ]
+        for p in self.patches:
+            p.start()
+
+    def tearDown(self):
+        for p in reversed(self.patches):
+            p.stop()
+        self.tmp.cleanup()
+
+    def test_pasang_menulis_manifest_dan_registry(self):
+        files = host.pasang()
+        self.assertEqual(len(files), 1)
+        man = json.loads(files[0].read_text(encoding="utf-8"))
+        self.assertEqual(man["path"], r"C:\uv\bin\monev-native-host.exe")
+        for kunci in host.KUNCI_REGISTRY_WIN:
+            self.assertEqual(self.reg.data[rf"{kunci}\{host.HOST_NAME}"], str(files[0]))
+        self.assertTrue(host.registry_terdaftar())
+
+    def test_diagnosa_sebelum_dan_sesudah_pasang(self):
+        prof = os.path.join(self.tmp.name, "Google", "Chrome", "User Data", "Default")
+        os.makedirs(prof)
+        with open(os.path.join(prof, "Secure Preferences"), "w") as f:
+            f.write('{"extensions":{"settings":{"%s":{"path":"C:/x/extension"}}}}' % host.EXTENSION_ID)
+        with open(os.path.join(prof, "Preferences"), "w") as f:
+            f.write("{}")
+        self.assertTrue(any("monev extension install" in x for x in host.diagnosa()))
+        host.pasang()
+        self.assertEqual(host.diagnosa(), [])
+
+
 class TestManifestExtension(unittest.TestCase):
     def test_id_cocok_dengan_key(self):
         import base64

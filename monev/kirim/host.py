@@ -65,6 +65,19 @@ def host_main() -> int:
 
 # ---------------------------------------------------------------- pemasangan
 
+# Windows tidak memakai folder NativeMessagingHosts: Chrome membaca registry HKCU\<kunci>\<HOST_NAME>,
+# yang nilai default-nya menunjuk ke file manifest (ditaruh di %LOCALAPPDATA%\monev).
+KUNCI_REGISTRY_WIN = (r"Software\Google\Chrome\NativeMessagingHosts", r"Software\Chromium\NativeMessagingHosts")
+
+
+def _windows() -> bool:
+    return sys.platform.startswith("win")
+
+
+def _localappdata() -> Path:
+    return Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData/Local")
+
+
 def lokasi_manifest_host() -> list[Path]:
     home = Path.home()
     if sys.platform == "darwin":
@@ -73,7 +86,9 @@ def lokasi_manifest_host() -> list[Path]:
     if sys.platform.startswith("linux"):
         cfg = Path(os.environ.get("XDG_CONFIG_HOME", home / ".config"))
         return [cfg / "google-chrome/NativeMessagingHosts", cfg / "chromium/NativeMessagingHosts"]
-    return []   # Windows: perlu registry, belum didukung
+    if _windows():
+        return [_localappdata() / "monev/NativeMessagingHosts"]
+    return []
 
 
 def cari_host_exe() -> str | None:
@@ -82,8 +97,34 @@ def cari_host_exe() -> str | None:
     found = shutil.which("monev-native-host")
     if found:
         return str(Path(found).absolute())
-    cand = Path(sys.executable).parent / "monev-native-host"
-    return str(cand) if cand.exists() else None
+    for nama in ("monev-native-host", "monev-native-host.exe"):
+        cand = Path(sys.executable).parent / nama
+        if cand.exists():
+            return str(cand)
+    return None
+
+
+def _registry_daftar(manifest: Path) -> None:
+    import winreg  # noqa: PLC0415 — hanya ada di Windows
+
+    for kunci in KUNCI_REGISTRY_WIN:
+        with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, rf"{kunci}\{HOST_NAME}", 0, winreg.KEY_WRITE) as k:
+            winreg.SetValueEx(k, "", 0, winreg.REG_SZ, str(manifest))
+
+
+def registry_terdaftar() -> bool:
+    """Windows: True bila salah satu kunci registry menunjuk ke file manifest yang ada."""
+    import winreg  # noqa: PLC0415
+
+    for kunci in KUNCI_REGISTRY_WIN:
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, rf"{kunci}\{HOST_NAME}") as k:
+                nilai, _ = winreg.QueryValueEx(k, "")
+        except OSError:
+            continue
+        if nilai and Path(nilai).exists():
+            return True
+    return False
 
 
 def manifest_host(exe: str) -> dict:
@@ -103,7 +144,14 @@ def pasang() -> list[Path]:
                            "uv tool install -e <repo> --reinstall")
     tujuan = lokasi_manifest_host()
     if not tujuan:
-        raise RuntimeError("OS ini belum didukung (Windows butuh registry)")
+        raise RuntimeError(f"OS ini belum didukung ({sys.platform})")
+    if _windows():
+        d = tujuan[0]
+        d.mkdir(parents=True, exist_ok=True)
+        p = d / f"{HOST_NAME}.json"
+        p.write_text(json.dumps(manifest_host(exe), indent=2), encoding="utf-8")
+        _registry_daftar(p)
+        return [p]
     ditulis = []
     for d in tujuan:
         if d.parent.is_dir():   # hanya bila Chrome/Chromium pernah dipakai di mesin ini
@@ -123,6 +171,8 @@ def folder_profil_chrome() -> list[Path]:
     elif sys.platform.startswith("linux"):
         cfg = Path(os.environ.get("XDG_CONFIG_HOME", home / ".config"))
         bases = [cfg / "google-chrome", cfg / "chromium"]
+    elif _windows():
+        bases = [_localappdata() / "Google/Chrome/User Data", _localappdata() / "Chromium/User Data"]
     else:
         return []
     return [p for b in bases if b.is_dir() for p in b.iterdir() if (p / "Preferences").exists()]
@@ -152,8 +202,13 @@ def extension_terpasang() -> bool | None:
 def chrome_berjalan() -> bool | None:
     import subprocess
 
-    if sys.platform.startswith("win"):
-        return None
+    if _windows():
+        try:
+            r = subprocess.run(["tasklist", "/FI", "IMAGENAME eq chrome.exe", "/NH"],
+                               capture_output=True, text=True)
+        except (FileNotFoundError, OSError):
+            return None
+        return "chrome.exe" in r.stdout.lower() if r.returncode == 0 else None
     nama = "Google Chrome" if sys.platform == "darwin" else "chrome"
     try:
         return subprocess.run(["pgrep", "-x", nama], capture_output=True).returncode == 0
@@ -165,7 +220,11 @@ def diagnosa() -> list[str]:
     """Masalah yang pasti membuat extension tidak akan mengambil pekerjaan. Kosong = siap."""
     masalah = []
     host = [d / f"{HOST_NAME}.json" for d in lokasi_manifest_host()]
-    if host and not any(p.exists() for p in host):
+    if _windows():
+        belum = not registry_terdaftar()
+    else:
+        belum = bool(host) and not any(p.exists() for p in host)
+    if belum:
         masalah.append("Jembatan Native Messaging belum terdaftar → jalankan: monev extension install")
     if extension_terpasang() is False:
         masalah.append("Extension 'monev kirim' tidak ditemukan di profil Chrome mana pun → chrome://extensions → "
