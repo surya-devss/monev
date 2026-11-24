@@ -8,36 +8,68 @@ plus pengingat dan rekap kehadiran lewat Telegram.
 
 Jalan di **Linux** dan **Windows**. Tersedia sebagai skill `/monev` di **Claude Code** dan **Hermes Agent**.
 
+<p>
+  <img src="docs/img/platform/claude-code.svg" alt="" height="20" align="absmiddle"> <b>Claude Code</b> &nbsp;
+  <img src="docs/img/platform/hermes-agent.png" alt="" height="20" align="absmiddle"> <b>Hermes Agent</b> &nbsp;
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/img/platform/linux-putih.svg"><img src="docs/img/platform/linux.svg" alt="" height="18" align="absmiddle"></picture> <b>Linux</b> &nbsp;
+  <img src="docs/img/platform/windows.svg" alt="" height="16" align="absmiddle"> <b>Windows</b>
+</p>
+
 Email dan password Monev tidak disimpan, login selalu kamu ketik sendiri. Sesi login hanya ada di profil Chrome.
 
 ## Alurnya
 
 ```mermaid
 flowchart TB
-  subgraph PAGI["1. Pagi"]
-    direction LR
-    K["Bot Telegram 08.00<br/>kartu hari ini"] ~~~ N["Extension<br/>sapaan dan fokus hari ini"]
+  subgraph SUMBER["Sumber · dibaca saja"]
+    direction TB
+    GIT["🔀 <b>Git</b><br/><small>commit, PR/MR, review</small>"]
+    MCP["🔌 <b>MCP kantor</b><br/><small>logtime, tiket, kalender</small>"]
+    WR["📝 <b>Catatan</b><br/><small>folder work records</small>"]
   end
-  subgraph SUSUN["2. Menyusun draft"]
-    direction LR
-    S["Sumber kerja<br/>commit, tiket, logtime,<br/>kalender, work records"] --> A["/monev<br/>aktivitas, pelajaran, kendala"] --> V["monev validate<br/>cek aturan Monev dan nama klien"]
+
+  subgraph LAPTOP["Laptop"]
+    direction TB
+    AGENT["✨ <b>Agent /monev</b><br/><small>Claude Code atau Hermes</small>"]
+    CLI["⌨️ <b>CLI monev</b><br/><small>status, validasi, kirim</small>"]
+    EXT["🧩 <b>Extension</b><br/><small>di Chrome harianmu</small>"]
   end
-  subgraph REVIEW["3. Review"]
-    direction LR
-    R["Kamu membaca draft<br/>koreksi: disusun ulang"] --> OK["Balas kirim<br/>tanpa ini tidak ada yang terkirim"]
+
+  subgraph LUAR["Monev & HP"]
+    direction TB
+    MONEV["🌐 <b>Monev</b><br/><small>situs laporan harian</small>"]
+    BOT["🤖 <b>Bot</b><br/><small>server atau laptop, opsional</small>"]
+    HP["📱 <b>Telegram</b><br/><small>pengingat dan rekap</small>"]
   end
-  subgraph KIRIM["4. Kirim lewat extension"]
-    direction LR
-    E1["Buka form di Chrome-mu"] --> E2["Isi 3 kolom"] --> E3["Cek lokasi asli"] --> E4["Centang dan kirim"]
-  end
-  subgraph SESUDAH["5. Sesudahnya"]
-    direction LR
-    C["monev status<br/>laporan sudah masuk"] --> B["Bot<br/>pengingat dicoret, kartu Terkirim"] --> M["Mentor<br/>menyetujui atau minta revisi"]
-  end
-  PAGI --> SUSUN --> REVIEW --> KIRIM --> SESUDAH
+
+  CLI -. "① cek status" .-> MONEV
+  WR -- "②" --> AGENT
+  MCP -- "②" --> AGENT
+  GIT -- "② bahan" --> CLI
+  AGENT == "③ kamu balas kirim" ==> CLI
+  CLI == "④" ==> EXT
+  EXT == "④ isi form" ==> MONEV
+  BOT -. "⑤ baca" .-> MONEV
+  BOT -- "⑤ kabari" --> HP
+
+  classDef sumber fill:#1e293b,stroke:#64748b,color:#f1f5f9
+  classDef laptop fill:#0f3d36,stroke:#86ead4,stroke-width:2px,color:#ecfdf9
+  classDef luar fill:#1f2a44,stroke:#8ea2ff,color:#eef2ff
+  class GIT,MCP,WR sumber
+  class AGENT,CLI,EXT laptop
+  class MONEV,BOT,HP luar
+  style SUMBER fill:transparent,stroke:#64748b,stroke-dasharray:5 4
+  style LAPTOP fill:transparent,stroke:#86ead4,stroke-dasharray:5 4
+  style LUAR fill:transparent,stroke:#8ea2ff,stroke-dasharray:5 4
 ```
 
-Laporan tidak pernah terkirim tanpa balasan `kirim` darimu. Bot dan popup hanya membaca Monev.
+1. **Cek status**: CLI membaca status hari ini dari Monev.
+2. **Kumpulkan bahan**: agent membaca catatan dan MCP kantor, CLI membaca aktivitas Git.
+3. **Kamu memutuskan**: draft dicek aturan Monev lewat CLI. Tanpa balasan `kirim`, berhenti di sini.
+4. **Extension mengirim**: CLI menitipkan draft ke extension, yang mengisi form di Chrome-mu dengan lokasi asli.
+5. **Bot mengabari**: bot opsional membaca Monev, lalu mengirim pengingat, kabar revisi mentor, dan rekap ke Telegram.
+
+Garis putus-putus berarti hanya membaca. Laporan tidak pernah terkirim tanpa balasan `kirim` darimu.
 
 ## Bagian-bagiannya
 
