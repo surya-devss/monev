@@ -20,37 +20,34 @@ Email dan password Monev tidak disimpan, login selalu kamu ketik sendiri. Sesi l
 ## Alurnya
 
 ```mermaid
-flowchart TB
+flowchart LR
   subgraph SUMBER["Sumber · dibaca saja"]
-    direction TB
-    GIT["🔀 <b>Git</b><br/><small>commit, PR/MR, review</small>"]
-    MCP["🔌 <b>MCP kantor</b><br/><small>logtime, tiket, kalender</small>"]
-    WR["📝 <b>Catatan</b><br/><small>folder work records</small>"]
+    GIT["<b>Git</b><br/>commit, PR/MR"]
+    MCP["<b>MCP kantor</b><br/>logtime, tiket"]
+    WR["<b>Catatan</b><br/>work records"]
   end
 
   subgraph LAPTOP["Laptop"]
-    direction TB
-    AGENT["✨ <b>Agent /monev</b><br/><small>Claude Code atau Hermes</small>"]
-    CLI["⌨️ <b>CLI monev</b><br/><small>status, validasi, kirim</small>"]
-    EXT["🧩 <b>Extension</b><br/><small>di Chrome harianmu</small>"]
+    AGENT["<b>Agent /monev</b><br/>Claude Code, Hermes"]
+    CLI["<b>CLI monev</b><br/>status, validasi"]
+    EXT["<b>Extension</b><br/>Chrome harianmu"]
   end
 
   subgraph LUAR["Monev & HP"]
-    direction TB
-    MONEV["🌐 <b>Monev</b><br/><small>situs laporan harian</small>"]
-    BOT["🤖 <b>Bot</b><br/><small>server atau laptop, opsional</small>"]
-    HP["📱 <b>Telegram</b><br/><small>pengingat dan rekap</small>"]
+    MONEV["<b>Monev</b><br/>situs laporan"]
+    BOT["<b>Bot</b><br/>opsional"]
+    HP["<b>Telegram</b><br/>pengingat, rekap"]
   end
 
-  CLI -. "① cek status" .-> MONEV
-  WR -- "②" --> AGENT
-  MCP -- "②" --> AGENT
-  GIT -- "② bahan" --> CLI
-  AGENT == "③ kamu balas kirim" ==> CLI
-  CLI == "④" ==> EXT
-  EXT == "④ isi form" ==> MONEV
-  BOT -. "⑤ baca" .-> MONEV
-  BOT -- "⑤ kabari" --> HP
+  WR --> AGENT
+  MCP --> AGENT
+  GIT --> CLI
+  AGENT ==> CLI
+  CLI -.-> MONEV
+  CLI ==> EXT
+  EXT ==> MONEV
+  BOT -.-> MONEV
+  BOT --> HP
 
   classDef sumber fill:#1e293b,stroke:#64748b,color:#f1f5f9
   classDef laptop fill:#0f3d36,stroke:#86ead4,stroke-width:2px,color:#ecfdf9
@@ -69,7 +66,7 @@ flowchart TB
 4. **Extension mengirim**: CLI menitipkan draft ke extension, yang mengisi form di Chrome-mu dengan lokasi asli.
 5. **Bot mengabari**: bot opsional membaca Monev, lalu mengirim pengingat, kabar revisi mentor, dan rekap ke Telegram.
 
-Garis putus-putus berarti hanya membaca. Laporan tidak pernah terkirim tanpa balasan `kirim` darimu.
+Garis tebal adalah jalur kirim, garis putus-putus berarti hanya membaca. Laporan tidak pernah terkirim tanpa balasan `kirim` darimu.
 
 ## Bagian-bagiannya
 
