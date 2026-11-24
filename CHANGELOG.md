@@ -4,6 +4,15 @@ Perubahan yang terasa oleh pemakai.
 
 ## [Unreleased]
 
+### Ditambahkan
+- Dukungan Windows: `monev extension install` mendaftarkan jembatan Native Messaging lewat registry
+  `HKCU\Software\Google\Chrome\NativeMessagingHosts` (tanpa hak admin). `monev doctor` dan `monev kirim` mengecek
+  pendaftaran registry, profil Chrome di `%LOCALAPPDATA%`, dan Chrome yang berjalan lewat `tasklist`.
+
+### Diubah
+- Penguncian proses draft terjadwal tidak lagi bergantung pada `fcntl`, jadi modulnya bisa dimuat di Windows.
+- Panduan pasang dan README menyatakan dukungan Linux dan Windows serta skill `/monev` di Claude Code dan Hermes Agent.
+
 ## [0.3.0] - 2026-11-23
 
 ### Ditambahkan
