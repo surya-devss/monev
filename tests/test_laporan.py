@@ -176,7 +176,9 @@ class TestChrome(unittest.TestCase):
             exe = Path(tmp, "Google", "Chrome", "Application", "chrome.exe")
             exe.parent.mkdir(parents=True)
             exe.touch()
-            with mock.patch.object(sys, "platform", "win32"), mock.patch.dict(os.environ, {"LOCALAPPDATA": tmp}):
+            # Kosongkan Program Files supaya Chrome asli di mesin Windows (mis. runner CI) tidak ikut terdeteksi.
+            env = {"LOCALAPPDATA": tmp, "PROGRAMFILES": "", "PROGRAMFILES(X86)": ""}
+            with mock.patch.object(sys, "platform", "win32"), mock.patch.dict(os.environ, env):
                 self.assertEqual(find_chrome(), str(exe))
             with mock.patch.object(sys, "platform", "darwin"), mock.patch("os.path.isfile", return_value=True):
                 self.assertTrue(find_chrome().endswith("Google Chrome"))
