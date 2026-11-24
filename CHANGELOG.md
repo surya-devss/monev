@@ -11,6 +11,8 @@ Perubahan yang terasa oleh pemakai.
 
 ### Diubah
 - Penguncian proses draft terjadwal tidak lagi bergantung pada `fcntl`, jadi modulnya bisa dimuat di Windows.
+- Keluaran CLI selalu UTF-8. Di Windows, keluaran yang ditangkap agent atau di-pipe sebelumnya gagal dengan
+  `UnicodeEncodeError` saat mencetak ✓ atau ✗.
 - Panduan pasang dan README menyatakan dukungan Linux dan Windows serta skill `/monev` di Claude Code dan Hermes Agent.
 
 ## [0.3.0] - 2026-11-23

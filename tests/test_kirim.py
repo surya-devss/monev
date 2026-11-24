@@ -223,6 +223,24 @@ class TestWindows(unittest.TestCase):
         self.assertEqual(host.diagnosa(), [])
 
 
+class TestStdioUtf8(unittest.TestCase):
+    def test_keluaran_cp1252_diubah_ke_utf8(self):
+        """Seperti pipe di Windows: cp1252 tidak punya ✓, jadi tanpa reconfigure print akan gagal."""
+        import sys
+
+        from monev.cli import stdio_utf8
+
+        buf = io.BytesIO()
+        palsu = io.TextIOWrapper(buf, encoding="cp1252")
+        with self.assertRaises(UnicodeEncodeError):
+            palsu.write("✓")
+        with mock.patch.object(sys, "stdout", palsu), mock.patch.object(sys, "stderr", palsu):
+            stdio_utf8()
+            print("✓ host Native Messaging")
+            sys.stdout.flush()
+        self.assertEqual(buf.getvalue().decode("utf-8").strip(), "✓ host Native Messaging")
+
+
 class TestManifestExtension(unittest.TestCase):
     def test_id_cocok_dengan_key(self):
         import base64
